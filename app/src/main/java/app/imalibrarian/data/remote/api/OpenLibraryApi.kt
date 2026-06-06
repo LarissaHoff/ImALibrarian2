@@ -1,9 +1,8 @@
 package app.imalibrarian.data.remote.api
 
-import app.imalibrarian.data.remote.model.OpenLibraryBookResponse
+import app.imalibrarian.data.remote.model.OpenLibraryBookData
 import app.imalibrarian.data.remote.model.OpenLibrarySearchResponse
 import retrofit2.http.GET
-import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface OpenLibraryApi {
@@ -12,7 +11,7 @@ interface OpenLibraryApi {
         @Query("bibkeys") bibkeys: String,
         @Query("format") format: String = "json",
         @Query("jscmd") jscmd: String = "data"
-    ): OpenLibraryBookResponse
+    ): Map<String, OpenLibraryBookData>
 
     @GET("search.json")
     suspend fun searchByTitle(

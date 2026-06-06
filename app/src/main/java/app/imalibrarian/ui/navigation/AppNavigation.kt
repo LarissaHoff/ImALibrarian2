@@ -29,7 +29,15 @@ fun AppNavigation(navController: NavHostController) {
             BookDetailScreen(navController = navController)
         }
 
-        composable(Screen.AddBook.route) {
+        composable(
+            route = Screen.AddBook.route,
+            arguments = listOf(
+                navArgument("isbn") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
+            )
+        ) {
             AddEditBookScreen(navController = navController)
         }
 

@@ -3,11 +3,6 @@ package app.imalibrarian.data.remote.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class OpenLibraryBookResponse(
-    val map: Map<String, OpenLibraryBookData> = emptyMap()
-)
-
-@Serializable
 data class OpenLibraryBookData(
     val url: String = "",
     val title: String = "",

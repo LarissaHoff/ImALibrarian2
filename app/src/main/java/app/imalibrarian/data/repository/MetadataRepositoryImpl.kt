@@ -1,5 +1,6 @@
 package app.imalibrarian.data.repository
 
+import android.util.Log
 import app.imalibrarian.data.mapper.MetadataMerger
 import app.imalibrarian.data.remote.api.GoogleBooksApi
 import app.imalibrarian.data.remote.api.OpenLibraryApi
@@ -27,12 +28,28 @@ class MetadataRepositoryImpl @Inject constructor(
 
         return try {
             val googleQuery = "isbn:$isbn13"
-            val googleResult = try { googleBooksApi.searchByIsbn(googleQuery) } catch (_: Exception) { null }
+            Log.d("MetadataRepo", "Google Books query: $googleQuery")
+            val googleResult = try { googleBooksApi.searchByIsbn(googleQuery) } catch (e: Exception) {
+                Log.e("MetadataRepo", "Google Books error", e)
+                null
+            }
+            Log.d("MetadataRepo", "Google Books items: ${googleResult?.totalItems ?: 0}")
+
+            val olKey = "ISBN:$isbn13"
+            Log.d("MetadataRepo", "Open Library query: $olKey")
             val olResult = try {
-                openLibraryApi.getBookByIsbn("ISBN:$isbn13")
-            } catch (_: Exception) { null }
-            MetadataMerger.mergeResults(googleResult, olResult, isbn10, isbn13)
-        } catch (_: Exception) {
+                openLibraryApi.getBookByIsbn(olKey)
+            } catch (e: Exception) {
+                Log.e("MetadataRepo", "Open Library error", e)
+                null
+            }
+            Log.d("MetadataRepo", "Open Library entries: ${olResult?.size ?: 0}")
+
+            val merged = MetadataMerger.mergeResults(googleResult, olResult, isbn10, isbn13)
+            Log.d("MetadataRepo", "Merge result: ${merged::class.simpleName}")
+            merged
+        } catch (e: Exception) {
+            Log.e("MetadataRepo", "Lookup exception", e)
             ScanResult.NotFound
         }
     }

@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -71,6 +72,18 @@ fun AddEditBookScreen(
                 }
             }
 
+            if (uiState.lookupFailed) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MustardYellow.copy(alpha = 0.15f))
+                ) {
+                    Text(
+                        "No data found for this ISBN online. Fill in the details manually.",
+                        modifier = Modifier.padding(12.dp),
+                        color = MustardYellow
+                    )
+                }
+            }
+
             Text("Bibliographic Data", style = MaterialTheme.typography.titleMedium, color = Turquoise)
 
             OutlinedTextField(
@@ -112,6 +125,10 @@ fun AddEditBookScreen(
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
+            }
+
+            if (uiState.isLookingUp) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Turquoise)
             }
 
             OutlinedTextField(

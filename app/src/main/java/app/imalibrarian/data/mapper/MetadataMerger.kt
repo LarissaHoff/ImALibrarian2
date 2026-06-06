@@ -8,12 +8,12 @@ object MetadataMerger {
 
     fun mergeResults(
         googleResult: GoogleBooksResponse?,
-        openLibraryResult: OpenLibraryBookResponse?,
+        openLibraryResult: Map<String, OpenLibraryBookData>?,
         isbn10: String = "",
         isbn13: String = ""
     ): ScanResult {
         val googleBook = googleResult?.items?.firstOrNull()?.volumeInfo
-        val olBook = openLibraryResult?.map?.entries?.firstOrNull()?.value
+        val olBook = openLibraryResult?.entries?.firstOrNull()?.value
 
         if (googleBook == null && olBook == null) {
             return ScanResult.NotFound

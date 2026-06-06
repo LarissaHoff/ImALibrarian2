@@ -1,5 +1,6 @@
 package app.imalibrarian.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,6 +8,7 @@ import app.imalibrarian.domain.model.Book
 import app.imalibrarian.domain.model.ReadStatus
 import app.imalibrarian.domain.model.ScanResult
 import app.imalibrarian.domain.usecase.AddBookUseCase
+import app.imalibrarian.domain.usecase.ScanBarcodeUseCase
 import app.imalibrarian.domain.repository.BookRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -43,6 +45,8 @@ data class AddEditBookUiState(
     val coverImagePath: String = "",
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
+    val isLookingUp: Boolean = false,
+    val lookupFailed: Boolean = false,
     val isDuplicate: Boolean = false,
     val scanResult: ScanResult.Found? = null,
     val saveComplete: Boolean = false
@@ -52,10 +56,12 @@ data class AddEditBookUiState(
 class AddEditBookViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val addBookUseCase: AddBookUseCase,
+    private val scanBarcodeUseCase: ScanBarcodeUseCase,
     private val bookRepository: BookRepository
 ) : ViewModel() {
 
     private val bookId: Long = savedStateHandle.get<Long>("bookId") ?: -1L
+    private val scanIsbn: String = savedStateHandle.get<String>("isbn") ?: ""
 
     private val _uiState = MutableStateFlow(AddEditBookUiState())
     val uiState: StateFlow<AddEditBookUiState> = _uiState.asStateFlow()
@@ -63,6 +69,8 @@ class AddEditBookViewModel @Inject constructor(
     init {
         if (bookId > 0) {
             loadBook()
+        } else if (scanIsbn.isNotBlank()) {
+            lookupScannedIsbn(scanIsbn)
         }
     }
 
@@ -103,19 +111,43 @@ class AddEditBookViewModel @Inject constructor(
         }
     }
 
+    private fun lookupScannedIsbn(isbn: String) {
+        viewModelScope.launch {
+            Log.d("BookLookup", "Looking up ISBN: $isbn")
+            _uiState.value = _uiState.value.copy(isbn13 = isbn, isLookingUp = true, lookupFailed = false)
+            val result = scanBarcodeUseCase.lookupBarcode(isbn)
+            when (result) {
+                is ScanResult.Found -> {
+                    Log.d("BookLookup", "Found: ${result.title} by ${result.authors}")
+                    populateFromScan(result)
+                }
+                is ScanResult.NotFound -> {
+                    Log.d("BookLookup", "No results found for ISBN: $isbn")
+                    _uiState.value = _uiState.value.copy(isLookingUp = false, lookupFailed = true)
+                }
+                is ScanResult.Error -> {
+                    Log.e("BookLookup", "Lookup error: ${result.message}")
+                    _uiState.value = _uiState.value.copy(isLookingUp = false, lookupFailed = true)
+                }
+            }
+        }
+    }
+
     fun populateFromScan(result: ScanResult.Found) {
         _uiState.value = _uiState.value.copy(
             title = result.title,
             subtitle = result.subtitle,
+            authorNames = result.authors.joinToString(", "),
             isbn10 = result.isbn10,
             isbn13 = result.isbn13,
             publisher = result.publisher,
-            pageCount = result.pageCount.toString(),
+            pageCount = if (result.pageCount > 0) result.pageCount.toString() else "",
             language = result.language,
             genre = result.genre,
             originalPublicationYear = result.originalPublicationYear?.toString() ?: "",
             coverImagePath = result.coverUrl,
-            scanResult = result
+            scanResult = result,
+            isLookingUp = false
         )
         checkDuplicate()
     }
