@@ -2,6 +2,7 @@ package app.imalibrarian.ui.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -9,6 +10,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -20,6 +24,8 @@ import app.imalibrarian.ui.components.ReadStatusBadge
 import app.imalibrarian.ui.components.StarburstRating
 import app.imalibrarian.ui.theme.*
 import app.imalibrarian.viewmodel.BookDetailViewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,6 +95,22 @@ fun BookDetailScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp)
             ) {
+                if (book.coverImagePath.isNotBlank()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(book.coverImagePath)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Cover of ${book.title}",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(240.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Fit
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
                 Text(
                     text = book.title,
                     style = MaterialTheme.typography.headlineLarge,
@@ -123,7 +145,7 @@ fun BookDetailScreen(
                         DetailRow("ISBN-13", book.isbn13)
                         DetailRow("Publisher", book.publisher)
                         DetailRow("Pages", book.pageCount.toString())
-                        DetailRow("Language", book.language)
+                        DetailRow("Language", languageWithFlag(book.language))
                         DetailRow("First Published", book.originalPublicationYear?.toString() ?: "")
                         DetailRow("Edition Year", book.editionPublicationYear?.toString() ?: "")
                         DetailRow("Genre", book.genre)
@@ -177,6 +199,16 @@ fun BookDetailScreen(
             }
         }
     }
+}
+
+private fun languageWithFlag(code: String): String {
+    val flag = when {
+        code.equals("en", ignoreCase = true) || code.equals("eng", ignoreCase = true) -> "\uD83C\uDDEC\uD83C\uDDE7 "
+        code.equals("es", ignoreCase = true) || code.equals("spa", ignoreCase = true) -> "\uD83C\uDDEA\uD83C\uDDF8 "
+        code.equals("de", ignoreCase = true) || code.equals("ger", ignoreCase = true) || code.equals("deu", ignoreCase = true) -> "\uD83C\uDDE9\uD83C\uDDEA "
+        else -> ""
+    }
+    return "$flag$code"
 }
 
 @Composable

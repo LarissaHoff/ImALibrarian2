@@ -4,13 +4,20 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- Teal circle -->
     <path
         android:fillColor="#008080"
         android:pathData="M54,54m-36,0a36,36 0,1 1,72 0a36,36 0,1 1,-72 0"/>
+
+    <!-- Gold starburst -->
     <path
         android:fillColor="#FFD700"
         android:pathData="M54,18 L57,42 L76,32 L62,50 L86,54 L62,58 L76,76 L57,66 L54,90 L51,66 L32,76 L46,58 L22,54 L46,50 L32,32 L51,42 Z"/>
+
+    <!-- Italic L -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M44,36 L44,72 L52,72 L52,52 L56,72 L64,72 L64,36 L56,36 L56,48 L52,48 L52,36 Z"/>
+        android:pathData="M44,36 L56,32 L52,68 L64,72 L66,74 L44,64 L48,36 Z"/>
+
 </vector>

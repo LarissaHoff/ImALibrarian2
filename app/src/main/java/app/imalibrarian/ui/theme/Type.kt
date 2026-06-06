@@ -2,11 +2,18 @@ package app.imalibrarian.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import app.imalibrarian.R
 
-val SpaceMono = FontFamily.Default
+val SpaceMono = FontFamily(
+    Font(R.font.space_mono_regular, FontWeight.Normal),
+    Font(R.font.space_mono_italic, FontWeight.Normal, style = androidx.compose.ui.text.font.FontStyle.Italic),
+    Font(R.font.space_mono_bold, FontWeight.Bold),
+    Font(R.font.space_mono_bold_italic, FontWeight.Bold, style = androidx.compose.ui.text.font.FontStyle.Italic)
+)
 
 val AtomicAgeTypography = Typography(
     displayLarge = TextStyle(

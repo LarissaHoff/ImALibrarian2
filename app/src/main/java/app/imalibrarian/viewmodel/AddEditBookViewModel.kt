@@ -26,6 +26,9 @@ data class AddEditBookUiState(
     val placeOfPublication: String = "",
     val pageCount: String = "",
     val language: String = "",
+    val selectedLanguageCode: String = "",
+    val customLanguageText: String = "",
+    val showCustomLanguageField: Boolean = false,
     val originalPublicationYear: String = "",
     val editionPublicationYear: String = "",
     val editionNumber: String = "",
@@ -105,6 +108,9 @@ class AddEditBookViewModel @Inject constructor(
                     seriesName = it.seriesName,
                     seriesNumber = it.seriesNumber?.toString() ?: "",
                     coverImagePath = it.coverImagePath,
+                    selectedLanguageCode = languageFlagCode(it.language),
+                    customLanguageText = if (isFlagLanguage(it.language)) "" else it.language,
+                    showCustomLanguageField = !isFlagLanguage(it.language) && it.language.isNotBlank(),
                     isEditing = true
                 )
             }
@@ -146,6 +152,9 @@ class AddEditBookViewModel @Inject constructor(
             genre = result.genre,
             originalPublicationYear = result.originalPublicationYear?.toString() ?: "",
             coverImagePath = result.coverUrl,
+            selectedLanguageCode = languageFlagCode(result.language),
+            customLanguageText = if (isFlagLanguage(result.language)) "" else result.language,
+            showCustomLanguageField = !isFlagLanguage(result.language) && result.language.isNotBlank(),
             scanResult = result,
             isLookingUp = false
         )
@@ -178,6 +187,21 @@ class AddEditBookViewModel @Inject constructor(
     fun updateSeriesName(name: String) { _uiState.value = _uiState.value.copy(seriesName = name) }
     fun updateSeriesNumber(num: String) { _uiState.value = _uiState.value.copy(seriesNumber = num) }
     fun updateCoverImagePath(path: String) { _uiState.value = _uiState.value.copy(coverImagePath = path) }
+    fun selectLanguageFlag(code: String) {
+        _uiState.value = _uiState.value.copy(
+            selectedLanguageCode = code,
+            language = if (code.isNotEmpty()) code else _uiState.value.customLanguageText,
+            customLanguageText = if (code.isNotEmpty()) "" else _uiState.value.customLanguageText,
+            showCustomLanguageField = code.isEmpty()
+        )
+    }
+    fun updateCustomLanguage(text: String) {
+        _uiState.value = _uiState.value.copy(
+            customLanguageText = text,
+            language = text,
+            selectedLanguageCode = ""
+        )
+    }
 
     private fun checkDuplicate() {
         viewModelScope.launch {
@@ -203,7 +227,7 @@ class AddEditBookViewModel @Inject constructor(
                 publisher = state.publisher,
                 placeOfPublication = state.placeOfPublication,
                 pageCount = state.pageCount.toIntOrNull() ?: 0,
-                language = state.language,
+                language = if (state.selectedLanguageCode.isNotBlank()) state.selectedLanguageCode else state.customLanguageText,
                 originalPublicationYear = state.originalPublicationYear.toIntOrNull(),
                 editionPublicationYear = state.editionPublicationYear.toIntOrNull(),
                 editionNumber = state.editionNumber.toIntOrNull(),
@@ -231,4 +255,15 @@ class AddEditBookViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isSaving = false, saveComplete = true)
         }
     }
+
+    private fun languageFlagCode(lang: String): String {
+        return when {
+            lang.equals("en", ignoreCase = true) || lang.equals("eng", ignoreCase = true) -> "en"
+            lang.equals("es", ignoreCase = true) || lang.equals("spa", ignoreCase = true) -> "es"
+            lang.equals("de", ignoreCase = true) || lang.equals("ger", ignoreCase = true) || lang.equals("deu", ignoreCase = true) -> "de"
+            else -> ""
+        }
+    }
+
+    private fun isFlagLanguage(lang: String): Boolean = languageFlagCode(lang).isNotEmpty()
 }

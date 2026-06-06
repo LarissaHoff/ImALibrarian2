@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -25,6 +26,8 @@ import app.imalibrarian.ui.components.ReadStatusBadge
 import app.imalibrarian.ui.theme.*
 import app.imalibrarian.viewmodel.LibraryViewModel
 import app.imalibrarian.viewmodel.SortOrder
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -141,10 +144,14 @@ private fun BookGridItem(
                 contentAlignment = Alignment.Center
             ) {
                 if (book.coverImagePath.isNotBlank()) {
-                    Text(
-                        text = book.title.take(1),
-                        style = MaterialTheme.typography.displayLarge,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(book.coverImagePath)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
                 } else {
                     Text(
