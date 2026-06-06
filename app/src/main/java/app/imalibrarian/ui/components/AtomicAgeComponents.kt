@@ -248,19 +248,21 @@ fun RetroBarChart(
                     cornerRadius = CornerRadius(barWidth / 4)
                 )
 
+                val labelLayout = textMeasurer.measure(
+                    entry.key.take(8),
+                    TextStyle(fontSize = 10.sp, color = labelColor)
+                )
                 drawText(
-                    textMeasurer = textMeasurer.measure(
-                        entry.key.take(8),
-                        TextStyle(fontSize = 10.sp, color = labelColor)
-                    ),
+                    labelLayout,
                     topLeft = Offset(x - 4, size.height + 2.dp.toPx())
                 )
 
+                val valueLayout = textMeasurer.measure(
+                    entry.value.toString(),
+                    TextStyle(fontSize = 10.sp, color = labelColor)
+                )
                 drawText(
-                    textMeasurer = textMeasurer.measure(
-                        entry.value.toString(),
-                        TextStyle(fontSize = 10.sp, color = labelColor)
-                    ),
+                    valueLayout,
                     topLeft = Offset(x + barWidth / 4, y - 16.dp.toPx())
                 )
             }

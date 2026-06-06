@@ -20,7 +20,7 @@ class ExportBooksUseCase @Inject constructor(
     suspend fun exportToCsv(): String {
         val books = bookRepository.getAllBooks().first()
         val headers = listOf(
-            "id", "title", "subtitle", "isbn10", "isbn13", "publisher",
+            "id", "title", "subtitle", "authorNames", "isbn10", "isbn13", "publisher",
             "placeOfPublication", "pageCount", "language",
             "originalPublicationYear", "editionPublicationYear",
             "editionNumber", "printingNumber", "genre", "subgenre",
@@ -34,6 +34,7 @@ class ExportBooksUseCase @Inject constructor(
                 book.id.toString(),
                 book.title.csvEscape(),
                 book.subtitle.csvEscape(),
+                book.authorNames.csvEscape(),
                 book.isbn10,
                 book.isbn13,
                 book.publisher.csvEscape(),
@@ -60,7 +61,7 @@ class ExportBooksUseCase @Inject constructor(
                 book.dateAdded.toString()
             ).joinToString(",")
         }
-        return listOf(headers.joinToString(",")) + rows.joinToString("\n")
+        return (listOf(headers.joinToString(",")) + rows).joinToString("\n")
     }
 
     private fun String.csvEscape(): String {

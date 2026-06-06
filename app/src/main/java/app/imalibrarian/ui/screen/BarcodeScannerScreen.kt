@@ -18,6 +18,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import app.imalibrarian.ui.theme.Coral
 import app.imalibrarian.ui.theme.Turquoise
 
 @OptIn(ExperimentalMaterial3Api::class)

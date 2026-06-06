@@ -22,6 +22,7 @@ class AddBookUseCase @Inject constructor(
         val book = Book(
             title = scanResult.title,
             subtitle = scanResult.subtitle,
+            authorNames = scanResult.authors.joinToString(", "),
             isbn10 = scanResult.isbn10,
             isbn13 = scanResult.isbn13,
             publisher = scanResult.publisher,

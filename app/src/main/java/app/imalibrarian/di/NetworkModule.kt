@@ -73,9 +73,9 @@ object NetworkModule {
 }
 
 @javax.inject.Qualifier
-@Retention(javax.inject.QualifierAnnotation.BINARY)
+@kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY)
 annotation class GoogleBooksRetrofit
 
 @javax.inject.Qualifier
-@Retention(javax.inject.QualifierAnnotation.BINARY)
+@kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY)
 annotation class OpenLibraryRetrofit

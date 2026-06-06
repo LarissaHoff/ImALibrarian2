@@ -79,6 +79,7 @@ class WishlistViewModel @Inject constructor(
             val book = Book(
                 title = item.title,
                 subtitle = item.subtitle,
+                authorNames = item.authorNames,
                 isbn10 = item.isbn10,
                 isbn13 = item.isbn13,
                 publisher = item.publisher,

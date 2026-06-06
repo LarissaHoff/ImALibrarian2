@@ -6,7 +6,6 @@ import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.common.InputImage
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.tasks.asDeferred
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resumeWithException
@@ -30,20 +29,28 @@ class BarcodeScannerManager @Inject constructor() {
 
     suspend fun scanImage(inputImage: InputImage): List<ScannedBarcode> {
         return try {
-            val barcodes = scanner.process(inputImage).asDeferred().await()
-            barcodes.mapNotNull { barcode ->
-                val value = barcode.rawValue ?: return@mapNotNull null
-                val format = when (barcode.format) {
-                    Barcode.FORMAT_EAN_13 -> BarcodeFormat.EAN_13
-                    Barcode.FORMAT_EAN_8 -> BarcodeFormat.EAN_8
-                    Barcode.FORMAT_UPC_A -> BarcodeFormat.UPC_A
-                    Barcode.FORMAT_UPC_E -> BarcodeFormat.UPC_E
-                    Barcode.FORMAT_CODE_128 -> BarcodeFormat.CODE_128
-                    else -> BarcodeFormat.UNKNOWN
-                }
-                ScannedBarcode(value = value, format = format)
+            suspendCancellableCoroutine { continuation ->
+                scanner.process(inputImage)
+                    .addOnSuccessListener { barcodes ->
+                        val results = barcodes.mapNotNull { barcode ->
+                            val value = barcode.rawValue ?: return@mapNotNull null
+                            val format = when (barcode.format) {
+                                Barcode.FORMAT_EAN_13 -> BarcodeFormat.EAN_13
+                                Barcode.FORMAT_EAN_8 -> BarcodeFormat.EAN_8
+                                Barcode.FORMAT_UPC_A -> BarcodeFormat.UPC_A
+                                Barcode.FORMAT_UPC_E -> BarcodeFormat.UPC_E
+                                Barcode.FORMAT_CODE_128 -> BarcodeFormat.CODE_128
+                                else -> BarcodeFormat.UNKNOWN
+                            }
+                            ScannedBarcode(value = value, format = format)
+                        }
+                        continuation.resume(results) {}
+                    }
+                    .addOnFailureListener { e ->
+                        continuation.resumeWithException(e)
+                    }
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
     }

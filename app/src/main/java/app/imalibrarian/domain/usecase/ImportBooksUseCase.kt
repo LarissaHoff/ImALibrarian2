@@ -48,6 +48,7 @@ class ImportBooksUseCase @Inject constructor(
             val book = Book(
                 title = getValue("title"),
                 subtitle = getValue("subtitle"),
+                authorNames = getValue("authorNames"),
                 isbn10 = isbn10,
                 isbn13 = isbn13,
                 publisher = getValue("publisher"),

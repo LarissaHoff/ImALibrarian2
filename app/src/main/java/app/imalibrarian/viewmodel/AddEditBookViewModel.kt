@@ -165,6 +165,7 @@ class AddEditBookViewModel @Inject constructor(
                 id = if (state.isEditing) state.id else 0,
                 title = state.title,
                 subtitle = state.subtitle,
+                authorNames = state.authorNames,
                 isbn10 = state.isbn10,
                 isbn13 = state.isbn13,
                 publisher = state.publisher,
