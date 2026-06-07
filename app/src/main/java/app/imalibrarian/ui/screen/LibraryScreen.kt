@@ -49,6 +49,9 @@ fun LibraryScreen(
                     IconButton(onClick = { navController.navigate("add_book") }) {
                         Icon(Icons.Filled.Add, contentDescription = "Add Book")
                     }
+                    IconButton(onClick = { navController.navigate("import_export") }) {
+                        Icon(Icons.Filled.ImportExport, contentDescription = "Import / Export")
+                    }
                     IconButton(onClick = { /* toggle sort menu */ }) {
                         Icon(Icons.Filled.Sort, contentDescription = "Sort")
                     }
