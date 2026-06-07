@@ -17,6 +17,9 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import app.imalibrarian.domain.model.ReadStatus
 import app.imalibrarian.ui.components.AtomicCard
@@ -36,6 +39,13 @@ fun BookDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val book = uiState.book
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.loadBook()
+        }
+    }
 
     if (showDeleteDialog) {
         AlertDialog(

@@ -71,7 +71,7 @@ fun AddEditBookScreen(
                 },
                 actions = {
                     IconButton(onClick = { viewModel.saveBook() }, enabled = !uiState.isSaving) {
-                        Icon(Icons.Filled.Check, contentDescription = "Save")
+                        Icon(Icons.Filled.Save, contentDescription = "Save")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

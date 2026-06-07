@@ -31,7 +31,7 @@ class BookDetailViewModel @Inject constructor(
         loadBook()
     }
 
-    private fun loadBook() {
+    fun loadBook() {
         viewModelScope.launch {
             val book = bookRepository.getBookById(bookId)
             _uiState.value = BookDetailUiState(book = book, isLoading = false)
