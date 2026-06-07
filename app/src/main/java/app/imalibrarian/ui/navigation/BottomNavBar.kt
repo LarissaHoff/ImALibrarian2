@@ -16,7 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.imalibrarian.ui.theme.Cream
-import app.imalibrarian.ui.theme.Turquoise
+import app.imalibrarian.ui.theme.Lavender
 
 private data class Tab(
     val route: String,
@@ -39,7 +39,7 @@ fun BottomNavBar(
 ) {
     Box {
         NavigationBar(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.primary,
             tonalElevation = 8.dp
         ) {
             tabs.forEach { tab ->
@@ -48,9 +48,9 @@ fun BottomNavBar(
                     onClick = { onTabSelected(tab.route) },
                     icon = tab.icon,
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Turquoise,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        indicatorColor = Turquoise.copy(alpha = 0.15f)
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                        unselectedIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
+                        indicatorColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
                     )
                 )
             }
@@ -62,7 +62,7 @@ fun BottomNavBar(
                 .align(Alignment.TopCenter)
                 .offset(y = (-20).dp)
                 .size(48.dp),
-            containerColor = Turquoise,
+            containerColor = Lavender,
             contentColor = Cream,
             shape = CircleShape,
             elevation = FloatingActionButtonDefaults.elevation(
