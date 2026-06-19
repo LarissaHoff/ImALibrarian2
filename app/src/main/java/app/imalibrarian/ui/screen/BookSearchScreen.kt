@@ -1,5 +1,6 @@
 package app.imalibrarian.ui.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +16,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import app.imalibrarian.ui.components.AtomicCard
 import app.imalibrarian.ui.theme.*
+import app.imalibrarian.viewmodel.SearchSuggestion
 import app.imalibrarian.viewmodel.SearchViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -24,7 +26,25 @@ fun BookSearchScreen(
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var searchQuery by remember { mutableStateOf("") }
+    var dropdownExpanded by remember { mutableStateOf(false) }
+    var userDismissed by remember { mutableStateOf(false) }
+    val onlineMode = uiState.searchOnline
+
+    val hasSuggestions = uiState.suggestions.isNotEmpty() &&
+        uiState.query.isNotBlank() &&
+        !onlineMode
+
+    LaunchedEffect(uiState.query, uiState.suggestions) {
+        userDismissed = false
+    }
+
+    LaunchedEffect(hasSuggestions, userDismissed) {
+        dropdownExpanded = when {
+            !hasSuggestions -> false
+            userDismissed -> false
+            else -> true
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -42,48 +62,150 @@ fun BookSearchScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            SearchBar(
-                query = searchQuery,
-                onQueryChange = { searchQuery = it },
-                onSearch = {
-                    viewModel.updateQuery(searchQuery)
-                    viewModel.search()
+            ExposedDropdownMenuBox(
+                expanded = dropdownExpanded && hasSuggestions,
+                onExpandedChange = { wantsOpen ->
+                    if (wantsOpen) {
+                        userDismissed = false
+                        dropdownExpanded = true
+                    } else {
+                        userDismissed = true
+                        dropdownExpanded = false
+                    }
                 },
-                active = false,
-                onActiveChange = {},
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                placeholder = { Text("Search by title, author, or ISBN...") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) }
-            ) {}
-
-            TabRow(selectedTabIndex = if (uiState.searchOnline) 1 else 0) {
-                Tab(
-                    selected = !uiState.searchOnline,
-                    onClick = {
-                        viewModel.updateQuery(searchQuery)
-                        viewModel.search()
+                    .padding(16.dp)
+            ) {
+                OutlinedTextField(
+                    value = uiState.query,
+                    onValueChange = { viewModel.updateQuery(it) },
+                    singleLine = true,
+                    placeholder = { Text("Search by title, author, or ISBN...") },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (uiState.query.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.clearSearch() }) {
+                                Icon(Icons.Filled.Close, contentDescription = "Clear")
+                            }
+                        }
                     },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor()
+                )
+
+                ExposedDropdownMenu(
+                    expanded = dropdownExpanded && hasSuggestions,
+                    onDismissRequest = { dropdownExpanded = false }
+                ) {
+                    val titles = uiState.suggestions.filterIsInstance<SearchSuggestion.Title>()
+                    val authors = uiState.suggestions.filterIsInstance<SearchSuggestion.Author>()
+
+                    if (titles.isNotEmpty()) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "Titles",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Turquoise
+                                )
+                            },
+                            onClick = {},
+                            enabled = false
+                        )
+                        titles.forEach { suggestion ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(
+                                            suggestion.title,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        if (suggestion.authors.isNotBlank()) {
+                                            Text(
+                                                suggestion.authors,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    dropdownExpanded = false
+                                    navController.navigate("book_detail/${suggestion.id}")
+                                }
+                            )
+                        }
+                    }
+
+                    if (authors.isNotEmpty()) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "Authors",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Coral
+                                )
+                            },
+                            onClick = {},
+                            enabled = false
+                        )
+                        authors.forEach { suggestion ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        suggestion.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                },
+                                onClick = {
+                                    dropdownExpanded = false
+                                    viewModel.updateQuery(suggestion.name)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            TabRow(selectedTabIndex = if (onlineMode) 1 else 0) {
+                Tab(
+                    selected = !onlineMode,
+                    onClick = { viewModel.search() },
                     text = { Text("Local") }
                 )
                 Tab(
-                    selected = uiState.searchOnline,
+                    selected = onlineMode,
                     onClick = { viewModel.searchOnline() },
                     text = { Text("Online") }
                 )
             }
 
-            if (uiState.isSearching) {
+            val showOnlineSpinner = onlineMode && uiState.isSearchingOnline
+
+            if (showOnlineSpinner) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Turquoise)
                 }
             } else {
+                if (!onlineMode && uiState.isSearching) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Turquoise
+                    )
+                }
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (uiState.localResults.isNotEmpty()) {
+                    if (!onlineMode && uiState.localResults.isNotEmpty()) {
                         item {
                             Text("Your Library", style = MaterialTheme.typography.titleMedium, color = Turquoise)
                         }
@@ -94,6 +216,15 @@ fun BookSearchScreen(
                             ) {
                                 Column(modifier = Modifier.padding(12.dp)) {
                                     Text(book.title, style = MaterialTheme.typography.titleSmall)
+                                    if (book.authorNames.isNotBlank()) {
+                                        Text(
+                                            book.authorNames,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                     Text(
                                         book.publisher,
                                         style = MaterialTheme.typography.bodySmall,
@@ -106,7 +237,7 @@ fun BookSearchScreen(
                         }
                     }
 
-                    if (uiState.onlineResults.isNotEmpty()) {
+                    if (onlineMode && uiState.onlineResults.isNotEmpty()) {
                         item {
                             Text("Online Results", style = MaterialTheme.typography.titleMedium, color = Coral)
                         }
@@ -133,13 +264,53 @@ fun BookSearchScreen(
                         }
                     }
 
-                    if (uiState.localResults.isEmpty() && uiState.onlineResults.isEmpty() && !uiState.isSearching) {
+                    if (onlineMode && uiState.onlineError != null) {
+                        item {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    "Online search failed: ${uiState.onlineError}",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Button(
+                                    onClick = { viewModel.retryOnline() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Turquoise)
+                                ) {
+                                    Icon(Icons.Filled.Refresh, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Retry")
+                                }
+                            }
+                        }
+                    }
+
+                    if (uiState.query.isNotBlank() &&
+                        !uiState.isSearching &&
+                        !uiState.isSearchingOnline &&
+                        ((!onlineMode && uiState.localResults.isEmpty()) ||
+                            (onlineMode && uiState.onlineResults.isEmpty() && uiState.onlineError == null))
+                    ) {
                         item {
                             Box(
                                 modifier = Modifier.fillMaxWidth().padding(32.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text("No results found", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    } else if (onlineMode && uiState.query.isBlank()) {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "Type a title or author, then tap Online",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }

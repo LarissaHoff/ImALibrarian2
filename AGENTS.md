@@ -58,15 +58,54 @@ Both are optional; app works offline-first with Room.
 
 ## Build & Run Commands
 
-```bash
-# Build
+All commands require `JAVA_HOME` set to the bundled JetBrains Runtime (or any JDK 17+). The project directory contains non-ASCII characters, so always set `JAVA_HOME` from the same shell session before invoking Gradle.
+
+```powershell
+# PowerShell (recommended on Windows)
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+
+# Build a debug APK (output: app/build/outputs/apk/debug/app-debug.apk)
 ./gradlew assembleDebug
 
-# Run tests
+# Run unit tests (note: pre-existing compile error in StatisticsUseCaseTest.kt
+# unrelated to recent branches — see Known Warnings)
 ./gradlew testDebugUnitTest
 
-# Install on device
+# Install the debug APK on the currently connected device/emulator
 ./gradlew installDebug
+
+# Launch the app on the connected device (after installDebug)
+adb shell monkey -p app.imalibrarian -c android.intent.category.LAUNCHER 1
+# or with an explicit component:
+adb shell am start -n app.imalibrarian/.MainActivity
+
+# Build + install + launch in one go
+./gradlew installDebug && adb shell monkey -p app.imalibrarian -c android.intent.category.LAUNCHER 1
+```
+
+### ADB
+
+`adb` is **not on the system PATH**. The full path is:
+
+```
+C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe
+```
+
+Useful commands:
+
+```powershell
+# List connected devices
+& "C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe" devices -l
+
+# Restart the adb server (fixes stuck "offline" devices)
+& "C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe" kill-server
+& "C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe" start-server
+
+# Reconnect to a wireless device
+& "C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe" connect <ip>:5555
+
+# Tail logcat for this app
+& "C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe" logcat --pid=$(adb shell pidof -s app.imalibrarian)
 ```
 
 If Gradle wrapper is missing: `./gradlew wrapper` (requires JAVA_HOME)

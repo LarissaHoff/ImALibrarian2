@@ -37,6 +37,12 @@ class BookRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun searchLocalBooksByTitleOrAuthor(query: String): Flow<List<Book>> {
+        return bookDao.searchLocalBooksByTitleOrAuthor(query).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
     override fun getBooksByReadStatus(status: ReadStatus): Flow<List<Book>> {
         return bookDao.getBooksByReadStatus(status.name).map { entities ->
             entities.map { it.toDomain() }

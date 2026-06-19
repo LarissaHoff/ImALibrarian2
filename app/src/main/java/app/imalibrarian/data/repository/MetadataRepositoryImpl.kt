@@ -1,11 +1,11 @@
 package app.imalibrarian.data.repository
 
-import android.util.Log
 import app.imalibrarian.data.mapper.MetadataMerger
 import app.imalibrarian.data.remote.api.GoogleBooksApi
 import app.imalibrarian.data.remote.api.OpenLibraryApi
 import app.imalibrarian.domain.model.ScanResult
 import app.imalibrarian.domain.repository.MetadataRepository
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,36 +28,24 @@ class MetadataRepositoryImpl @Inject constructor(
 
         return try {
             val googleQuery = "isbn:$isbn13"
-            Log.d("MetadataRepo", "Google Books query: $googleQuery")
-            val googleResult = try { googleBooksApi.searchByIsbn(googleQuery) } catch (e: Exception) {
-                Log.e("MetadataRepo", "Google Books error", e)
-                null
-            }
-            Log.d("MetadataRepo", "Google Books items: ${googleResult?.totalItems ?: 0}")
+            val googleResult = try { googleBooksApi.searchByIsbn(googleQuery) } catch (_: Exception) { null }
 
             val olKey = "ISBN:$isbn13"
-            Log.d("MetadataRepo", "Open Library query: $olKey")
-            val olResult = try {
-                openLibraryApi.getBookByIsbn(olKey)
-            } catch (e: Exception) {
-                Log.e("MetadataRepo", "Open Library error", e)
-                null
-            }
-            Log.d("MetadataRepo", "Open Library entries: ${olResult?.size ?: 0}")
+            val olResult = try { openLibraryApi.getBookByIsbn(olKey) } catch (_: Exception) { null }
 
-            val merged = MetadataMerger.mergeResults(googleResult, olResult, isbn10, isbn13)
-            Log.d("MetadataRepo", "Merge result: ${merged::class.simpleName}")
-            merged
-        } catch (e: Exception) {
-            Log.e("MetadataRepo", "Lookup exception", e)
+            MetadataMerger.mergeResults(googleResult, olResult, isbn10, isbn13)
+        } catch (_: Exception) {
             ScanResult.NotFound
         }
     }
 
     override suspend fun searchByTitle(query: String): List<ScanResult> {
-        val googleResults = try { googleBooksApi.searchByTitle(query) } catch (_: Exception) { null }
-        val olResults = try { openLibraryApi.searchByTitle(query) } catch (_: Exception) { null }
-        return MetadataMerger.mergeSearchResults(googleResults, olResults)
+        val olResults = try {
+            withTimeoutOrNull(PER_SOURCE_TIMEOUT_MILLIS) { openLibraryApi.searchByTitle(query) }
+        } catch (_: Exception) {
+            null
+        }
+        return MetadataMerger.mergeSearchResults(null, olResults)
     }
 
     private fun convertToIsbn13(isbn10: String): String {
@@ -82,5 +70,9 @@ class MetadataRepositoryImpl @Inject constructor(
         val checkDigit = (11 - (sum % 11)) % 11
         val checkChar = if (checkDigit == 10) "X" else checkDigit.toString()
         return "$base$checkChar"
+    }
+
+    companion object {
+        private const val PER_SOURCE_TIMEOUT_MILLIS = 8_000L
     }
 }
