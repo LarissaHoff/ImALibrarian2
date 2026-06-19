@@ -24,6 +24,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import app.imalibrarian.domain.model.ReadStatus
 import app.imalibrarian.ui.theme.*
+import app.imalibrarian.ui.util.DateFormatter
 import app.imalibrarian.viewmodel.AddEditBookViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -336,6 +337,26 @@ fun AddEditBookScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
+
+            val dateAddedText = DateFormatter.formatDateAdded(uiState.dateAdded)
+            if (dateAddedText.isNotBlank()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Date Added",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = dateAddedText,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
 
             OutlinedTextField(
                 value = uiState.personalNotes,

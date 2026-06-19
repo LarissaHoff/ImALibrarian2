@@ -23,6 +23,7 @@ import app.imalibrarian.ui.components.AtomicCard
 import app.imalibrarian.ui.components.ReadStatusBadge
 import app.imalibrarian.ui.components.StarburstRating
 import app.imalibrarian.ui.theme.*
+import app.imalibrarian.ui.util.DateFormatter
 import app.imalibrarian.viewmodel.BookDetailViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -165,6 +166,10 @@ fun BookDetailScreen(
                         DetailRow("Acquired", book.dateAcquired?.toString() ?: "", showWhenEmpty = false)
                         DetailRow("Price", book.purchasePrice, showWhenEmpty = false)
                         DetailRow("Source", book.sourceOfPurchase, showWhenEmpty = false)
+                        val dateAddedText = DateFormatter.formatDateAdded(book.dateAdded)
+                        if (dateAddedText.isNotBlank()) {
+                            DetailRow("Date Added", dateAddedText, showWhenEmpty = false)
+                        }
                         DetailRow("Notes", book.personalNotes)
                         if (book.isFavourite) {
                             DetailRow("Favourite", "Yes")
