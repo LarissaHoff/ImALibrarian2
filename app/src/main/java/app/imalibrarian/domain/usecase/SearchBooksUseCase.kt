@@ -12,6 +12,9 @@ class SearchBooksUseCase @Inject constructor(
 ) {
     fun searchLocalBooks(query: String) = bookRepository.searchBooks(query)
 
+    fun searchLocalBooksByTitleOrAuthor(query: String) =
+        bookRepository.searchLocalBooksByTitleOrAuthor(query)
+
     suspend fun searchOnline(query: String): List<ScanResult> {
         return metadataRepository.searchByTitle(query)
     }

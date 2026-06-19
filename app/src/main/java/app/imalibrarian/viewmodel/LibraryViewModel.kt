@@ -49,6 +49,7 @@ class LibraryViewModel @Inject constructor(
                 if (query.isNotBlank()) {
                     filtered = filtered.filter {
                         it.title.contains(query, ignoreCase = true) ||
+                        it.authorNames.contains(query, ignoreCase = true) ||
                         it.isbn10.contains(query) ||
                         it.isbn13.contains(query)
                     }

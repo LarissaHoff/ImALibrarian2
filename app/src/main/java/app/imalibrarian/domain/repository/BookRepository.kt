@@ -9,6 +9,7 @@ interface BookRepository {
     suspend fun getBookById(id: Long): Book?
     suspend fun getBooksByIsbn(isbn10: String, isbn13: String): List<Book>
     fun searchBooks(query: String): Flow<List<Book>>
+    fun searchLocalBooksByTitleOrAuthor(query: String): Flow<List<Book>>
     fun getBooksByReadStatus(status: ReadStatus): Flow<List<Book>>
     fun getBooksByGenre(genre: String): Flow<List<Book>>
     fun getFavouriteBooks(): Flow<List<Book>>

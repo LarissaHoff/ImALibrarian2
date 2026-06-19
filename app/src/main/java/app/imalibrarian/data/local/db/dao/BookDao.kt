@@ -21,6 +21,19 @@ interface BookDao {
     @Query("SELECT * FROM books WHERE title LIKE '%' || :query || '%' OR authorNames LIKE '%' || :query || '%'")
     fun searchBooks(query: String): Flow<List<BookEntity>>
 
+    @Query("SELECT * FROM books WHERE title LIKE '%' || :q || '%' OR authorNames LIKE '%' || :q || '%'")
+    fun searchLocalBooksByTitleOrAuthor(q: String): Flow<List<BookEntity>>
+
+    @Query(
+        "SELECT id, title, authorNames FROM books " +
+        "WHERE title LIKE '%' || :q || '%' OR authorNames LIKE '%' || :q || '%' " +
+        "ORDER BY " +
+        "  CASE WHEN title LIKE :q || '%' THEN 0 ELSE 1 END, " +
+        "  title " +
+        "LIMIT :limit"
+    )
+    fun suggestTitlesAndAuthors(q: String, limit: Int): Flow<List<BookSuggestion>>
+
     @Query("SELECT * FROM books WHERE readStatus = :status")
     fun getBooksByReadStatus(status: String): Flow<List<BookEntity>>
 
@@ -80,3 +93,9 @@ interface BookDao {
 }
 
 data class GenreCount(val genre: String, val count: Int)
+
+data class BookSuggestion(
+    val id: Long,
+    val title: String,
+    val authorNames: String
+)
