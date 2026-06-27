@@ -1,7 +1,9 @@
 package app.imalibrarian.ui.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -170,18 +172,49 @@ private fun FilterChipsRow(
     onGenreSelected: (String?) -> Unit,
     onStatusSelected: (ReadStatus?) -> Unit
 ) {
-    ScrollableTabRow(
-        selectedTabIndex = 0,
-        modifier = Modifier.fillMaxWidth(),
-        edgePadding = 16.dp,
-        containerColor = MaterialTheme.colorScheme.background
+    val statuses = listOf<Pair<ReadStatus?, String>>(null to "All") +
+        ReadStatus.entries.map { it to it.displayName }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        val statuses = listOf(null to "All") + ReadStatus.entries.map { it to it.name }
         statuses.forEach { (status, label) ->
-            Tab(
+            FilterStatusChip(
+                label = label,
                 selected = selectedStatus == status,
-                onClick = { onStatusSelected(status) },
-                text = { Text(label.replace("_", " ").replace("DID NOT FINISH", "DNF"), style = MaterialTheme.typography.labelSmall) }
+                onClick = { onStatusSelected(status) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun FilterStatusChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val background = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+    val foreground = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+    val border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        color = background,
+        contentColor = foreground,
+        border = border
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1
             )
         }
     }
