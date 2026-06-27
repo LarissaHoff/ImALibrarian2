@@ -231,17 +231,34 @@ private fun BookGridItem(
                 overflow = TextOverflow.Ellipsis
             )
 
-            Text(
-                text = book.publisher,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            if (book.authorNames.isNotBlank()) {
+                Text(
+                    text = book.authorNames,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            ReadStatusBadge(status = book.readStatus)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                if (book.originalPublicationYear != null) {
+                    Text(
+                        text = book.originalPublicationYear.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Spacer(modifier = Modifier.width(0.dp))
+                }
+                ReadStatusBadge(status = book.readStatus)
+            }
         }
     }
 }
