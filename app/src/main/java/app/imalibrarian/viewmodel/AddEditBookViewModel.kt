@@ -87,6 +87,7 @@ class AddEditBookViewModel @Inject constructor(
                     id = it.id,
                     title = it.title,
                     subtitle = it.subtitle,
+                    authorNames = it.authorNames,
                     isbn10 = it.isbn10,
                     isbn13 = it.isbn13,
                     publisher = it.publisher,

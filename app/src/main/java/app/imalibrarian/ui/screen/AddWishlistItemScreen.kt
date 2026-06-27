@@ -36,10 +36,16 @@ fun AddWishlistItemScreen(
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    IconButton(onClick = { viewModel.saveItem() }, enabled = !uiState.isSaving) {
+                        Icon(Icons.Filled.Save, contentDescription = "Save")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Coral,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }
@@ -143,8 +149,6 @@ fun AddWishlistItemScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Icon(Icons.Filled.Save, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text("Add to Wishlist")
                 }
             }

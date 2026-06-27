@@ -71,7 +71,7 @@ fun AddEditBookScreen(
                 },
                 actions = {
                     IconButton(onClick = { viewModel.saveBook() }, enabled = !uiState.isSaving) {
-                        Icon(Icons.Filled.Check, contentDescription = "Save")
+                        Icon(Icons.Filled.Save, contentDescription = "Save")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -361,8 +361,6 @@ fun AddEditBookScreen(
                 if (uiState.isSaving) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
                 } else {
-                    Icon(Icons.Filled.Save, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(if (uiState.isEditing) "Update Book" else "Save Book")
                 }
             }
