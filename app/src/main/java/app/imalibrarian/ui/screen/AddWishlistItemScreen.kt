@@ -136,22 +136,6 @@ fun AddWishlistItemScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = { viewModel.saveItem() },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Coral),
-                enabled = uiState.title.isNotBlank() && !uiState.isSaving
-            ) {
-                if (uiState.isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("Add to Wishlist")
-                }
-            }
         }
     }
 }

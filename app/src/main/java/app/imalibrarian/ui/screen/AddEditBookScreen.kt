@@ -351,19 +351,6 @@ fun AddEditBookScreen(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
-
-            Button(
-                onClick = { viewModel.saveBook() },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Turquoise),
-                enabled = uiState.title.isNotBlank() && !uiState.isSaving
-            ) {
-                if (uiState.isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
-                } else {
-                    Text(if (uiState.isEditing) "Update Book" else "Save Book")
-                }
-            }
         }
     }
 }
