@@ -165,6 +165,7 @@ fun BookDetailScreen(
                         DetailRow("Acquired", book.dateAcquired?.toString() ?: "", showWhenEmpty = false)
                         DetailRow("Price", book.purchasePrice, showWhenEmpty = false)
                         DetailRow("Source", book.sourceOfPurchase, showWhenEmpty = false)
+                        DetailRow("Date Added", book.dateAdded.toDateString(), showWhenEmpty = false)
                         DetailRow("Notes", book.personalNotes)
                         if (book.isFavourite) {
                             DetailRow("Favourite", "Yes")
@@ -199,6 +200,12 @@ fun BookDetailScreen(
             }
         }
     }
+}
+
+private fun Long.toDateString(): String {
+    return try {
+        java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date(this))
+    } catch (e: Exception) { "" }
 }
 
 private fun genreDisplay(genre: String, subgenre: String): String {

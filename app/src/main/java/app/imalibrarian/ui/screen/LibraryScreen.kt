@@ -11,6 +11,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -68,11 +71,53 @@ fun LibraryScreen(
                 IconButton(onClick = { navController.navigate("add_book") }) {
                     Icon(Icons.Filled.Add, contentDescription = "Add Book", tint = MaterialTheme.colorScheme.onPrimary)
                 }
-                IconButton(onClick = { navController.navigate("import_export") }) {
-                    Icon(Icons.Filled.ImportExport, contentDescription = "Import / Export", tint = MaterialTheme.colorScheme.onPrimary)
+
+                var sortMenuExpanded by remember { mutableStateOf(false) }
+                IconButton(onClick = { sortMenuExpanded = true }) {
+                    Icon(Icons.Filled.SwapVert, contentDescription = "Sort", tint = MaterialTheme.colorScheme.onPrimary)
                 }
-                IconButton(onClick = { /* toggle sort menu */ }) {
-                    Icon(Icons.Filled.Sort, contentDescription = "Sort", tint = MaterialTheme.colorScheme.onPrimary)
+                DropdownMenu(
+                    expanded = sortMenuExpanded,
+                    onDismissRequest = { sortMenuExpanded = false }
+                ) {
+                    val sortOptions = listOf(
+                        SortOrder.DATE_ADDED to "Last Book Added",
+                        SortOrder.TITLE to "Title (A-Z)",
+                        SortOrder.AUTHOR to "Author (A-Z)",
+                        SortOrder.GENRE to "Genre (A-Z)"
+                    )
+                    sortOptions.forEach { (order, label) ->
+                        DropdownMenuItem(
+                            text = { Text(label) },
+                            leadingIcon = {
+                                if (uiState.sortOrder == order) {
+                                    Icon(Icons.Filled.Check, contentDescription = null)
+                                }
+                            },
+                            onClick = {
+                                viewModel.setSortOrder(order)
+                                sortMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+
+                var burgerMenuExpanded by remember { mutableStateOf(false) }
+                IconButton(onClick = { burgerMenuExpanded = true }) {
+                    Icon(Icons.Filled.Menu, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onPrimary)
+                }
+                DropdownMenu(
+                    expanded = burgerMenuExpanded,
+                    onDismissRequest = { burgerMenuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Import / Export") },
+                        leadingIcon = { Icon(Icons.Filled.ImportExport, contentDescription = null) },
+                        onClick = {
+                            navController.navigate("import_export")
+                            burgerMenuExpanded = false
+                        }
+                    )
                 }
             }
         }

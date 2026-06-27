@@ -1,5 +1,6 @@
 package app.imalibrarian.ui.screen
 
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -19,7 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import app.imalibrarian.domain.model.ReadStatus
@@ -53,6 +56,31 @@ fun AddEditBookScreen(
                 }
             }
             viewModel.updateCoverImagePath(destFile.absolutePath)
+        }
+    }
+
+    val hasCamera = remember {
+        context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
+    }
+
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success) {
+            photoUri?.let { uri ->
+                val fileName = "cover_${System.currentTimeMillis()}.jpg"
+                val coversDir = File(context.filesDir, "covers")
+                coversDir.mkdirs()
+                val destFile = File(coversDir, fileName)
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    destFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                viewModel.updateCoverImagePath(destFile.absolutePath)
+            }
         }
     }
 
@@ -93,7 +121,24 @@ fun AddEditBookScreen(
         ) {
             CoverImagePicker(
                 coverImagePath = uiState.coverImagePath,
-                onPickImage = { imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                onTakePhoto = {
+                    if (hasCamera) {
+                        val coversDir = File(context.filesDir, "covers")
+                        coversDir.mkdirs()
+                        val photoFile = File(coversDir, "cover_${System.currentTimeMillis()}.jpg")
+                        photoUri = FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            photoFile
+                        )
+                        cameraLauncher.launch(photoUri!!)
+                    } else {
+                        imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }
+                },
+                onPickFromGallery = {
+                    imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                }
             )
 
             if (uiState.isDuplicate) {
@@ -337,6 +382,18 @@ fun AddEditBookScreen(
                 singleLine = true
             )
 
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Date Added: ",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = uiState.dateAdded.toDateString(),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
             OutlinedTextField(
                 value = uiState.personalNotes,
                 onValueChange = { viewModel.updatePersonalNotes(it) },
@@ -358,53 +415,72 @@ fun AddEditBookScreen(
 @Composable
 private fun CoverImagePicker(
     coverImagePath: String,
-    onPickImage: () -> Unit
+    onTakePhoto: () -> Unit,
+    onPickFromGallery: () -> Unit
 ) {
     val context = LocalContext.current
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable { onPickImage() },
-        contentAlignment = Alignment.Center
-    ) {
-        if (coverImagePath.isNotBlank()) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(coverImagePath)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = "Book cover",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-            Icon(
-                Icons.Filled.Edit,
-                contentDescription = "Change cover",
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp),
-                tint = MaterialTheme.colorScheme.onPrimary
-            )
-        } else {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable { onTakePhoto() },
+            contentAlignment = Alignment.Center
+        ) {
+            if (coverImagePath.isNotBlank()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(coverImagePath)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Book cover",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
                 Icon(
-                    Icons.Filled.AddAPhoto,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    Icons.Filled.Edit,
+                    contentDescription = "Change cover",
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp),
+                    tint = MaterialTheme.colorScheme.onPrimary
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "Tap to add cover",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Filled.AddAPhoto,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Tap to add cover",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
+        Text(
+            "Upload from gallery",
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .clickable { onPickFromGallery() }
+                .padding(vertical = 8.dp),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+            textDecoration = TextDecoration.Underline
+        )
     }
+}
+
+private fun Long.toDateString(): String {
+    return try {
+        java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date(this))
+    } catch (e: Exception) { "" }
 }
 
 @Composable

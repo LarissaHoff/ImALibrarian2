@@ -20,7 +20,7 @@ data class LibraryUiState(
 )
 
 enum class SortOrder {
-    TITLE, AUTHOR, DATE_ADDED, PUBLICATION_YEAR, RATING
+    TITLE, AUTHOR, DATE_ADDED, PUBLICATION_YEAR, RATING, GENRE
 }
 
 @HiltViewModel
@@ -62,10 +62,11 @@ class LibraryViewModel @Inject constructor(
                 }
                 filtered = when (sort) {
                     SortOrder.TITLE -> filtered.sortedBy { it.title }
-                    SortOrder.AUTHOR -> filtered.sortedBy { it.publisher }
+                    SortOrder.AUTHOR -> filtered.sortedBy { it.authorNames }
                     SortOrder.DATE_ADDED -> filtered.sortedByDescending { it.dateAdded }
                     SortOrder.PUBLICATION_YEAR -> filtered.sortedByDescending { it.originalPublicationYear }
                     SortOrder.RATING -> filtered.sortedByDescending { it.rating }
+                    SortOrder.GENRE -> filtered.sortedBy { it.genre }
                 }
                 LibraryUiState(
                     books = filtered,

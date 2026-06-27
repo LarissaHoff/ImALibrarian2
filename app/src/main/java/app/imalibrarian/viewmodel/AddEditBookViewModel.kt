@@ -48,6 +48,7 @@ data class AddEditBookUiState(
     val seriesName: String = "",
     val seriesNumber: String = "",
     val coverImagePath: String = "",
+    val dateAdded: Long = System.currentTimeMillis(),
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
     val isLookingUp: Boolean = false,
@@ -112,6 +113,7 @@ class AddEditBookViewModel @Inject constructor(
                     seriesName = it.seriesName,
                     seriesNumber = it.seriesNumber?.toString() ?: "",
                     coverImagePath = it.coverImagePath,
+                    dateAdded = it.dateAdded,
                     selectedLanguageCode = LanguageFlags.toFlagCode(it.language),
                     customLanguageText = if (LanguageFlags.isFlagLanguage(it.language)) "" else it.language,
                     showCustomLanguageField = !LanguageFlags.isFlagLanguage(it.language) && it.language.isNotBlank(),
@@ -250,7 +252,8 @@ class AddEditBookViewModel @Inject constructor(
             isFavourite = state.isFavourite,
                 seriesName = state.seriesName,
                 seriesNumber = state.seriesNumber.toIntOrNull(),
-                coverImagePath = state.coverImagePath
+                coverImagePath = state.coverImagePath,
+                dateAdded = state.dateAdded
             )
 
             if (state.isEditing) {
