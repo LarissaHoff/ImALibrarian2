@@ -40,7 +40,7 @@ object MetadataMerger {
             ?: 0
 
         val language = googleBook?.language?.takeIf { it.isNotBlank() }
-            ?: ""
+            ?: "en"
 
         val genre = googleBook?.categories?.firstOrNull()?.takeIf { it.isNotBlank() }
             ?: olBook?.subjects?.firstOrNull()?.name?.takeIf { it.isNotBlank() }
@@ -107,7 +107,7 @@ object MetadataMerger {
                     isbn13 = info.industryIdentifiers.find { it.type == "ISBN_13" }?.identifier ?: "",
                     publisher = info.publisher,
                     pageCount = info.pageCount,
-                    language = info.language,
+                    language = info.language.ifBlank { "en" },
                     genre = info.categories.firstOrNull() ?: "",
                     originalPublicationYear = parseYear(info.publishedDate),
                     coverUrl = info.imageLinks.thumbnail ?: "",
@@ -129,7 +129,7 @@ object MetadataMerger {
                         isbn13 = doc.isbn.find { it.length == 13 } ?: "",
                         publisher = doc.publisher.firstOrNull() ?: "",
                         pageCount = doc.number_of_pages_median ?: 0,
-                        language = doc.language.firstOrNull() ?: "",
+                        language = doc.language.firstOrNull() ?: "en",
                         genre = doc.subject.firstOrNull() ?: "",
                         originalPublicationYear = doc.first_publish_year,
                         coverUrl = doc.cover_i?.let { "https://covers.openlibrary.org/b/id/$it-M.jpg" } ?: "",
