@@ -28,10 +28,14 @@ class MetadataRepositoryImpl @Inject constructor(
 
         return try {
             val googleQuery = "isbn:$isbn13"
-            val googleResult = try { googleBooksApi.searchByIsbn(googleQuery) } catch (_: Exception) { null }
+            val googleResult = try {
+                withTimeoutOrNull(PER_SOURCE_TIMEOUT_MILLIS) { googleBooksApi.searchByIsbn(googleQuery) }
+            } catch (_: Exception) { null }
 
             val olKey = "ISBN:$isbn13"
-            val olResult = try { openLibraryApi.getBookByIsbn(olKey) } catch (_: Exception) { null }
+            val olResult = try {
+                withTimeoutOrNull(PER_SOURCE_TIMEOUT_MILLIS) { openLibraryApi.getBookByIsbn(olKey) }
+            } catch (_: Exception) { null }
 
             MetadataMerger.mergeResults(googleResult, olResult, isbn10, isbn13)
         } catch (_: Exception) {

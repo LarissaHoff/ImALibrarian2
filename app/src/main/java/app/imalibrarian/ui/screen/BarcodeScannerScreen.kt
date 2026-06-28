@@ -6,13 +6,15 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,8 +22,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -60,6 +64,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
 
 private const val TAG = "BarcodeScanner"
@@ -180,8 +185,10 @@ private fun CameraBarcodePreview(
 ) {
     val context = LocalContext.current
     val previewView = remember { PreviewView(context) }
-    val analyzerExecutor = remember { Executors.newSingleThreadExecutor() }
-    val analysisScope = remember { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
+    val captureExecutor = remember { Executors.newSingleThreadExecutor() }
+    val scanScope = remember { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
+    var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
+    var isScanning by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
@@ -191,20 +198,10 @@ private fun CameraBarcodePreview(
             it.setSurfaceProvider(previewView.surfaceProvider)
         }
 
-        val imageAnalysis = ImageAnalysis.Builder()
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
+        val capture = ImageCapture.Builder()
+            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
             .build()
-            .also { analysis ->
-                analysis.setAnalyzer(analyzerExecutor) { imageProxy ->
-                    processImageProxy(
-                        imageProxy = imageProxy,
-                        barcodeScannerManager = barcodeScannerManager,
-                        onBarcodeDetected = onBarcodeDetected,
-                        scope = analysisScope
-                    )
-                }
-            }
+            .also { imageCapture = it }
 
         val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
@@ -213,7 +210,7 @@ private fun CameraBarcodePreview(
                 lifecycleOwner,
                 cameraSelector,
                 preview,
-                imageAnalysis
+                capture
             )
         } catch (e: Exception) {
             Log.e(TAG, "Camera bind failed", e)
@@ -224,8 +221,8 @@ private fun CameraBarcodePreview(
                 cameraProviderFuture.get().unbindAll()
             } catch (_: Exception) {
             }
-            analyzerExecutor.shutdown()
-            analysisScope.cancel()
+            captureExecutor.shutdown()
+            scanScope.cancel()
         }
     }
 
@@ -236,6 +233,73 @@ private fun CameraBarcodePreview(
         )
 
         ScanOverlay()
+
+        Button(
+            onClick = {
+                val capture = imageCapture ?: return@Button
+                isScanning = true
+                capture.takePicture(
+                    captureExecutor,
+                    object : ImageCapture.OnImageCapturedCallback() {
+                        override fun onCaptureSuccess(imageProxy: ImageProxy) {
+                            val mediaImage = imageProxy.image
+                            if (mediaImage != null) {
+                                val inputImage = InputImage.fromMediaImage(
+                                    mediaImage, imageProxy.imageInfo.rotationDegrees
+                                )
+                                scanScope.launch {
+                                    try {
+                                        val results = barcodeScannerManager.scanImage(inputImage)
+                                        if (results.isNotEmpty()) {
+                                            Log.d(TAG, "Barcode detected: ${results.first().value}")
+                                            withContext(Dispatchers.Main) {
+                                                onBarcodeDetected(results.first().value)
+                                            }
+                                        } else {
+                                            withContext(Dispatchers.Main) { isScanning = false }
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "Barcode scan error", e)
+                                        withContext(Dispatchers.Main) { isScanning = false }
+                                    } finally {
+                                        imageProxy.close()
+                                    }
+                                }
+                            } else {
+                                imageProxy.close()
+                                scanScope.launch {
+                                    withContext(Dispatchers.Main) { isScanning = false }
+                                }
+                            }
+                        }
+
+                        override fun onError(exception: ImageCaptureException) {
+                            Log.e(TAG, "Capture failed", exception)
+                            scanScope.launch {
+                                withContext(Dispatchers.Main) { isScanning = false }
+                            }
+                        }
+                    }
+                )
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(24.dp)
+                .size(64.dp),
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(containerColor = Turquoise),
+            enabled = !isScanning
+        ) {
+            if (isScanning) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(Icons.Filled.CameraAlt, contentDescription = "Capture")
+            }
+        }
     }
 }
 
@@ -334,35 +398,6 @@ private fun ScanOverlay() {
             strokeWidth = 4.dp.toPx()
         )
     }
-}
-
-private fun processImageProxy(
-    imageProxy: ImageProxy,
-    barcodeScannerManager: BarcodeScannerManager,
-    onBarcodeDetected: (String) -> Unit,
-    scope: CoroutineScope
-) {
-    val mediaImage = imageProxy.image
-    if (mediaImage == null) {
-        imageProxy.close()
-        return
-    }
-
-    val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-
-    scope.launch {
-        try {
-            val results = barcodeScannerManager.scanImage(inputImage)
-            if (results.isNotEmpty()) {
-                Log.d(TAG, "Barcode detected: ${results.first().value}")
-                onBarcodeDetected(results.first().value)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Barcode scan error", e)
-        }
-    }
-
-    imageProxy.close()
 }
 
 @dagger.hilt.android.lifecycle.HiltViewModel

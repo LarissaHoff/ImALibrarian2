@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -198,7 +199,7 @@ private fun CoverCameraPreview(
     val context = LocalContext.current
     val previewView = remember { PreviewView(context) }
     val captureExecutor = remember { Executors.newSingleThreadExecutor() }
-    val analysisScope = remember { CoroutineScope(SupervisorJob() + Dispatchers.Main) }
+    val analysisScope = remember { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
 
     DisposableEffect(lifecycleOwner) {
@@ -238,22 +239,18 @@ private fun CoverCameraPreview(
             val capture = imageCapture ?: return@LaunchedEffect
             onCaptureStart()
             try {
-                val photoFile = java.io.File(
-                    context.cacheDir,
-                    "cover_scan_${System.currentTimeMillis()}.jpg"
-                )
-                val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
-
                 capture.takePicture(
-                    outputOptions,
                     captureExecutor,
-                    object : ImageCapture.OnImageSavedCallback {
-                        override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                    object : ImageCapture.OnImageCapturedCallback() {
+                        override fun onCaptureSuccess(imageProxy: ImageProxy) {
                             analysisScope.launch {
                                 try {
-                                    val bitmap = android.graphics.BitmapFactory.decodeFile(photoFile.absolutePath)
-                                    if (bitmap != null) {
-                                        val inputImage = InputImage.fromBitmap(bitmap, 0)
+                                    val mediaImage = imageProxy.image
+                                    if (mediaImage != null) {
+                                        val inputImage = InputImage.fromMediaImage(
+                                            mediaImage,
+                                            imageProxy.imageInfo.rotationDegrees
+                                        )
                                         val result = coverScannerManager.scanCover(inputImage)
                                         val bestTitle = result.titleCandidates.firstOrNull() ?: "Unknown Book"
                                         kotlinx.coroutines.withContext(Dispatchers.Main) {
@@ -269,7 +266,7 @@ private fun CoverCameraPreview(
                                         onCaptureComplete("Unknown Book")
                                     }
                                 } finally {
-                                    photoFile.delete()
+                                    imageProxy.close()
                                 }
                             }
                         }
