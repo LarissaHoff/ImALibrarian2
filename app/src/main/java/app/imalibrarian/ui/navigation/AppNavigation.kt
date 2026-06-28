@@ -1,6 +1,8 @@
 package app.imalibrarian.ui.navigation
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,6 +22,7 @@ fun AppNavigation(navController: NavHostController) {
     val currentRoute = navBackStackEntry?.destination?.route
 
     Scaffold(
+        contentWindowInsets = WindowInsets.systemBars,
         bottomBar = {
             BottomNavBar(
                 currentRoute = currentRoute,

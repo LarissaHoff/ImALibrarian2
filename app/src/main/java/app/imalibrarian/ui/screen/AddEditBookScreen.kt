@@ -91,34 +91,32 @@ fun AddEditBookScreen(
         LaunchedEffect(Unit) { navController.popBackStack() }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(if (uiState.isEditing) "Edit Book" else "Add Book") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.saveBook() }, enabled = !uiState.isSaving) {
-                        Icon(Icons.Filled.Save, contentDescription = "Save")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
+    Column(modifier = Modifier.fillMaxSize()) {
+        TopAppBar(
+            title = { Text(if (uiState.isEditing) "Edit Book" else "Add Book") },
+            navigationIcon = {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                }
+            },
+            actions = {
+                IconButton(onClick = { viewModel.saveBook() }, enabled = !uiState.isSaving) {
+                    Icon(Icons.Filled.Save, contentDescription = "Save")
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                actionIconContentColor = MaterialTheme.colorScheme.onPrimary
             )
-        }
-    ) { paddingValues ->
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .verticalScroll(scrollState)
+                .imePadding()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
