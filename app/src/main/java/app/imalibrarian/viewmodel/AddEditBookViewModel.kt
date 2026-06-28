@@ -10,6 +10,7 @@ import app.imalibrarian.domain.model.ScanResult
 import app.imalibrarian.domain.usecase.AddBookUseCase
 import app.imalibrarian.domain.usecase.ScanBarcodeUseCase
 import app.imalibrarian.domain.repository.BookRepository
+import app.imalibrarian.data.GenreCatalog
 import app.imalibrarian.ui.theme.LanguageFlags
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -36,6 +37,8 @@ data class AddEditBookUiState(
     val printingNumber: String = "",
     val genre: String = "",
     val subgenre: String = "",
+    val genreSuggestions: List<String> = emptyList(),
+    val subgenreSuggestions: List<String> = emptyList(),
     val dateAcquired: String = "",
     val purchasePrice: String = "",
     val sourceOfPurchase: String = "",
@@ -72,7 +75,15 @@ class AddEditBookViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(AddEditBookUiState())
     val uiState: StateFlow<AddEditBookUiState> = _uiState.asStateFlow()
 
+    private var allGenres: List<String> = GenreCatalog.allTerms
+
     init {
+        viewModelScope.launch {
+            val dbGenres = bookRepository.getAllGenres()
+            allGenres = (GenreCatalog.allTerms + dbGenres).distinct().sorted()
+            refreshGenreSuggestions(_uiState.value.genre)
+            refreshSubgenreSuggestions(_uiState.value.subgenre)
+        }
         if (bookId > 0) {
             loadBook()
         } else if (scanIsbn.isNotBlank()) {
@@ -180,8 +191,26 @@ class AddEditBookViewModel @Inject constructor(
     fun updateEditionPublicationYear(year: String) { _uiState.value = _uiState.value.copy(editionPublicationYear = year) }
     fun updateEditionNumber(num: String) { _uiState.value = _uiState.value.copy(editionNumber = num) }
     fun updatePrintingNumber(num: String) { _uiState.value = _uiState.value.copy(printingNumber = num) }
-    fun updateGenre(genre: String) { _uiState.value = _uiState.value.copy(genre = genre) }
-    fun updateSubgenre(subgenre: String) { _uiState.value = _uiState.value.copy(subgenre = subgenre) }
+    fun updateGenre(genre: String) {
+        _uiState.value = _uiState.value.copy(genre = genre)
+        refreshGenreSuggestions(genre)
+    }
+    fun updateSubgenre(subgenre: String) {
+        _uiState.value = _uiState.value.copy(subgenre = subgenre)
+        refreshSubgenreSuggestions(subgenre)
+    }
+
+    private fun refreshGenreSuggestions(query: String) {
+        val filtered = if (query.isBlank()) emptyList()
+            else allGenres.filter { it.contains(query, ignoreCase = true) }
+        _uiState.value = _uiState.value.copy(genreSuggestions = filtered)
+    }
+
+    private fun refreshSubgenreSuggestions(query: String) {
+        val filtered = if (query.isBlank()) emptyList()
+            else allGenres.filter { it.contains(query, ignoreCase = true) }
+        _uiState.value = _uiState.value.copy(subgenreSuggestions = filtered)
+    }
     fun updateDateAcquired(date: String) { _uiState.value = _uiState.value.copy(dateAcquired = date) }
     fun updatePurchasePrice(price: String) { _uiState.value = _uiState.value.copy(purchasePrice = price) }
     fun updateSourceOfPurchase(source: String) { _uiState.value = _uiState.value.copy(sourceOfPurchase = source) }

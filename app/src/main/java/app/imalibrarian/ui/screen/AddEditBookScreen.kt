@@ -323,21 +323,19 @@ fun AddEditBookScreen(
             Text("Classification", style = MaterialTheme.typography.titleMedium, color = Turquoise)
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
+                GenreAutocompleteField(
                     value = uiState.genre,
                     onValueChange = { viewModel.updateGenre(it.trimSuggestionSpace(uiState.genre)) },
-                    label = { Text("Genre") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+                    suggestions = uiState.genreSuggestions,
+                    label = "Genre",
+                    modifier = Modifier.weight(1f)
                 )
-                OutlinedTextField(
+                GenreAutocompleteField(
                     value = uiState.subgenre,
                     onValueChange = { viewModel.updateSubgenre(it.trimSuggestionSpace(uiState.subgenre)) },
-                    label = { Text("Subgenre") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+                    suggestions = uiState.subgenreSuggestions,
+                    label = "Subgenre",
+                    modifier = Modifier.weight(1f)
                 )
             }
 
@@ -501,6 +499,51 @@ private fun CoverImagePicker(
 
 private fun String.trimSuggestionSpace(currentValue: String): String {
     return if (length > currentValue.length + 1 && endsWith(" ")) trimEnd() else this
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GenreAutocompleteField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    suggestions: List<String>,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    var userDismissed by remember { mutableStateOf(false) }
+    val showDropdown = value.isNotBlank() && suggestions.isNotEmpty() && !userDismissed
+
+    ExposedDropdownMenuBox(
+        expanded = showDropdown,
+        onExpandedChange = { if (!it) userDismissed = true },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {
+                userDismissed = false
+                onValueChange(it)
+            },
+            label = { Text(label) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+        )
+        ExposedDropdownMenu(
+            expanded = showDropdown,
+            onDismissRequest = { userDismissed = true }
+        ) {
+            suggestions.forEach { suggestion ->
+                DropdownMenuItem(
+                    text = { Text(suggestion) },
+                    onClick = {
+                        onValueChange(suggestion)
+                        userDismissed = true
+                    }
+                )
+            }
+        }
+    }
 }
 
 private fun Long.toDateString(): String {
