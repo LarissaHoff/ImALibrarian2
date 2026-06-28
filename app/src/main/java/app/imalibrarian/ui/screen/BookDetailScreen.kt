@@ -14,6 +14,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -36,6 +39,17 @@ fun BookDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val book = uiState.book
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.loadBook()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -150,7 +164,12 @@ fun BookDetailScreen(
                         DetailRow("Language", LanguageFlags.displayLabel(book.language))
                         DetailRow("Genre", genreDisplay(book.genre, book.subgenre))
                         if (book.seriesName.isNotBlank()) {
-                            DetailRow("Series", "${book.seriesName} #${book.seriesNumber}")
+                            val seriesDisplay = if (book.seriesNumber != null && book.seriesNumber > 0) {
+                                "${book.seriesName} #${book.seriesNumber}"
+                            } else {
+                                book.seriesName
+                            }
+                            DetailRow("Series", seriesDisplay)
                         }
                     }
                 }
