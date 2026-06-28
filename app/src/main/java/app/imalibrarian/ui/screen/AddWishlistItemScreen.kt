@@ -2,6 +2,7 @@ package app.imalibrarian.ui.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import app.imalibrarian.domain.model.Priority
 import app.imalibrarian.ui.theme.*
 import app.imalibrarian.viewmodel.AddWishlistItemViewModel
@@ -63,7 +66,8 @@ fun AddWishlistItemScreen(
                 onValueChange = { viewModel.updateTitle(it) },
                 label = { Text("Title *") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
             )
 
             OutlinedTextField(
@@ -71,7 +75,8 @@ fun AddWishlistItemScreen(
                 onValueChange = { viewModel.updateAuthorNames(it) },
                 label = { Text("Author(s)") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
             )
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -80,14 +85,16 @@ fun AddWishlistItemScreen(
                     onValueChange = { viewModel.updateIsbn10(it) },
                     label = { Text("ISBN-10") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 OutlinedTextField(
                     value = uiState.isbn13,
                     onValueChange = { viewModel.updateIsbn13(it) },
                     label = { Text("ISBN-13") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
 
@@ -96,7 +103,8 @@ fun AddWishlistItemScreen(
                 onValueChange = { viewModel.updatePublisher(it) },
                 label = { Text("Publisher") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
             )
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -105,14 +113,16 @@ fun AddWishlistItemScreen(
                     onValueChange = { viewModel.updateGenre(it) },
                     label = { Text("Genre") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
                 )
                 OutlinedTextField(
                     value = uiState.subgenre,
                     onValueChange = { viewModel.updateSubgenre(it) },
                     label = { Text("Subgenre") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
                 )
             }
 
@@ -132,7 +142,8 @@ fun AddWishlistItemScreen(
                 onValueChange = { viewModel.updateNotes(it) },
                 label = { Text("Notes") },
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 3
+                minLines = 3,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
             )
 
             Spacer(modifier = Modifier.height(16.dp))

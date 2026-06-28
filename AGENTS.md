@@ -110,6 +110,10 @@ Useful commands:
 
 If Gradle wrapper is missing: `./gradlew wrapper` (requires JAVA_HOME)
 
+## Safety Rules
+
+- **Before any destructive operation** (e.g., `pm clear`, `uninstall`, database wipe, reset), always ask for permission first and suggest the user export their data via the app's built-in Import/Export feature beforehand.
+
 ## Known Warnings (non-blocking)
 
 - Deprecated `Icons.Filled.ArrowBack` → should migrate to `Icons.AutoMirrored.Filled.ArrowBack`

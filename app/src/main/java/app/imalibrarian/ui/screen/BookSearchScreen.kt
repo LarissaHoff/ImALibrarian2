@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -85,7 +86,7 @@ fun BookSearchScreen(
                             }
                         }
                     },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search, capitalization = KeyboardCapitalization.Sentences),
                     keyboardActions = KeyboardActions(onSearch = {
                         userDismissed = true
                         viewModel.submitSearch()

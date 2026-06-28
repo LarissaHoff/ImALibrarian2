@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -20,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
@@ -169,42 +172,47 @@ fun AddEditBookScreen(
 
             OutlinedTextField(
                 value = uiState.title,
-                onValueChange = { viewModel.updateTitle(it) },
+                onValueChange = { viewModel.updateTitle(it.trimSuggestionSpace(uiState.title)) },
                 label = { Text("Title *") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
             )
 
             OutlinedTextField(
                 value = uiState.subtitle,
-                onValueChange = { viewModel.updateSubtitle(it) },
+                onValueChange = { viewModel.updateSubtitle(it.trimSuggestionSpace(uiState.subtitle)) },
                 label = { Text("Subtitle") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
             )
 
             OutlinedTextField(
                 value = uiState.authorNames,
-                onValueChange = { viewModel.updateAuthorNames(it) },
+                onValueChange = { viewModel.updateAuthorNames(it.trimSuggestionSpace(uiState.authorNames)) },
                 label = { Text("Author(s)") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
             )
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = uiState.isbn10,
-                    onValueChange = { viewModel.updateIsbn10(it) },
+                    onValueChange = { viewModel.updateIsbn10(it.trimEnd()) },
                     label = { Text("ISBN-10") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 OutlinedTextField(
                     value = uiState.isbn13,
-                    onValueChange = { viewModel.updateIsbn13(it) },
+                    onValueChange = { viewModel.updateIsbn13(it.trimEnd()) },
                     label = { Text("ISBN-13") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
 
@@ -214,27 +222,30 @@ fun AddEditBookScreen(
 
             OutlinedTextField(
                 value = uiState.publisher,
-                onValueChange = { viewModel.updatePublisher(it) },
+                onValueChange = { viewModel.updatePublisher(it.trimSuggestionSpace(uiState.publisher)) },
                 label = { Text("Publisher") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
             )
 
             OutlinedTextField(
                 value = uiState.translator,
-                onValueChange = { viewModel.updateTranslator(it) },
+                onValueChange = { viewModel.updateTranslator(it.trimSuggestionSpace(uiState.translator)) },
                 label = { Text("Translator") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
             )
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = uiState.pageCount,
-                    onValueChange = { viewModel.updatePageCount(it) },
+                    onValueChange = { viewModel.updatePageCount(it.trimEnd()) },
                     label = { Text("Pages") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
 
@@ -259,10 +270,11 @@ fun AddEditBookScreen(
             if (uiState.showCustomLanguageField) {
                 OutlinedTextField(
                     value = uiState.customLanguageText,
-                    onValueChange = { viewModel.updateCustomLanguage(it) },
+                    onValueChange = { viewModel.updateCustomLanguage(it.trimSuggestionSpace(uiState.customLanguageText)) },
                     label = { Text("Custom Language") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
                 )
             }
 
@@ -273,34 +285,38 @@ fun AddEditBookScreen(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = uiState.originalPublicationYear,
-                    onValueChange = { viewModel.updateOriginalPublicationYear(it) },
+                    onValueChange = { viewModel.updateOriginalPublicationYear(it.trimEnd()) },
                     label = { Text("Original Year") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 OutlinedTextField(
                     value = uiState.editionPublicationYear,
-                    onValueChange = { viewModel.updateEditionPublicationYear(it) },
+                    onValueChange = { viewModel.updateEditionPublicationYear(it.trimEnd()) },
                     label = { Text("Edition Year") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = uiState.editionNumber,
-                    onValueChange = { viewModel.updateEditionNumber(it) },
+                    onValueChange = { viewModel.updateEditionNumber(it.trimEnd()) },
                     label = { Text("Edition #") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 OutlinedTextField(
                     value = uiState.printingNumber,
-                    onValueChange = { viewModel.updatePrintingNumber(it) },
+                    onValueChange = { viewModel.updatePrintingNumber(it.trimEnd()) },
                     label = { Text("Printing #") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
 
@@ -311,34 +327,38 @@ fun AddEditBookScreen(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = uiState.genre,
-                    onValueChange = { viewModel.updateGenre(it) },
+                    onValueChange = { viewModel.updateGenre(it.trimSuggestionSpace(uiState.genre)) },
                     label = { Text("Genre") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
                 )
                 OutlinedTextField(
                     value = uiState.subgenre,
-                    onValueChange = { viewModel.updateSubgenre(it) },
+                    onValueChange = { viewModel.updateSubgenre(it.trimSuggestionSpace(uiState.subgenre)) },
                     label = { Text("Subgenre") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
                 )
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = uiState.seriesName,
-                    onValueChange = { viewModel.updateSeriesName(it) },
+                    onValueChange = { viewModel.updateSeriesName(it.trimSuggestionSpace(uiState.seriesName)) },
                     label = { Text("Series") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
                 )
                 OutlinedTextField(
                     value = uiState.seriesNumber,
-                    onValueChange = { viewModel.updateSeriesNumber(it) },
+                    onValueChange = { viewModel.updateSeriesNumber(it.trimEnd()) },
                     label = { Text("Series #") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
 
@@ -360,26 +380,29 @@ fun AddEditBookScreen(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = uiState.shelfLocation,
-                    onValueChange = { viewModel.updateShelfLocation(it) },
+                    onValueChange = { viewModel.updateShelfLocation(it.trimSuggestionSpace(uiState.shelfLocation)) },
                     label = { Text("Shelf/Location") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
                 )
                 OutlinedTextField(
                     value = uiState.purchasePrice,
-                    onValueChange = { viewModel.updatePurchasePrice(it) },
+                    onValueChange = { viewModel.updatePurchasePrice(it.trimEnd()) },
                     label = { Text("Price") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )
             }
 
             OutlinedTextField(
                 value = uiState.sourceOfPurchase,
-                onValueChange = { viewModel.updateSourceOfPurchase(it) },
+                onValueChange = { viewModel.updateSourceOfPurchase(it.trimSuggestionSpace(uiState.sourceOfPurchase)) },
                 label = { Text("Source of Purchase") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
             )
 
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -396,10 +419,11 @@ fun AddEditBookScreen(
 
             OutlinedTextField(
                 value = uiState.personalNotes,
-                onValueChange = { viewModel.updatePersonalNotes(it) },
+                onValueChange = { viewModel.updatePersonalNotes(it.trimSuggestionSpace(uiState.personalNotes)) },
                 label = { Text("Personal Notes") },
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 3
+                minLines = 3,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
             )
 
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -475,6 +499,10 @@ private fun CoverImagePicker(
             textDecoration = TextDecoration.Underline
         )
     }
+}
+
+private fun String.trimSuggestionSpace(currentValue: String): String {
+    return if (length > currentValue.length + 1 && endsWith(" ")) trimEnd() else this
 }
 
 private fun Long.toDateString(): String {
