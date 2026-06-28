@@ -34,6 +34,7 @@ import app.imalibrarian.domain.model.ReadStatus
 import app.imalibrarian.ui.components.AtomicCard
 import app.imalibrarian.ui.components.ReadStatusBadge
 import app.imalibrarian.ui.theme.*
+import androidx.compose.ui.graphics.Color
 import app.imalibrarian.viewmodel.LibraryViewModel
 import app.imalibrarian.viewmodel.SortOrder
 import coil.compose.AsyncImage
@@ -125,17 +126,10 @@ fun LibraryScreen(
         }
 
         Column(modifier = Modifier.weight(1f)) {
-            SearchBar(
+            LibrarySearchField(
                 query = uiState.searchQuery,
-                onQueryChange = { viewModel.searchBooks(it) },
-                onSearch = { viewModel.searchBooks(it) },
-                active = false,
-                onActiveChange = {},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                placeholder = { Text("Search your library...") }
-            ) {}
+                onQueryChange = { viewModel.searchBooks(it) }
+            )
 
             FilterChipsRow(
                 selectedGenre = uiState.selectedGenre,
@@ -162,6 +156,41 @@ fun LibraryScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LibrarySearchField(
+    query: String,
+    onQueryChange: (String) -> Unit
+) {
+    val searchBarColor = Color(0xFFD9D2E9)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+        shape = RoundedCornerShape(28.dp),
+        color = searchBarColor
+    ) {
+        TextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            placeholder = { Text("Search your library...") },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            singleLine = true,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = searchBarColor,
+                unfocusedContainerColor = searchBarColor,
+                disabledContainerColor = searchBarColor,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent
+            ),
+            shape = RoundedCornerShape(28.dp)
+        )
     }
 }
 
