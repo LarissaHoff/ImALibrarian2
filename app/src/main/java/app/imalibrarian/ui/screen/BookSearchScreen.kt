@@ -1,5 +1,7 @@
 package app.imalibrarian.ui.screen
 
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -26,25 +29,13 @@ fun BookSearchScreen(
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var dropdownExpanded by remember { mutableStateOf(false) }
     var userDismissed by remember { mutableStateOf(false) }
     val onlineMode = uiState.searchOnline
 
-    val hasSuggestions = uiState.suggestions.isNotEmpty() &&
+    val showDropdown = !onlineMode &&
         uiState.query.isNotBlank() &&
-        !onlineMode
-
-    LaunchedEffect(uiState.query, uiState.suggestions) {
-        userDismissed = false
-    }
-
-    LaunchedEffect(hasSuggestions, userDismissed) {
-        dropdownExpanded = when {
-            !hasSuggestions -> false
-            userDismissed -> false
-            else -> true
-        }
-    }
+        uiState.suggestions.isNotEmpty() &&
+        !userDismissed
 
     Scaffold(
         topBar = {
@@ -63,15 +54,9 @@ fun BookSearchScreen(
                 .padding(paddingValues)
         ) {
             ExposedDropdownMenuBox(
-                expanded = dropdownExpanded && hasSuggestions,
+                expanded = showDropdown,
                 onExpandedChange = { wantsOpen ->
-                    if (wantsOpen) {
-                        userDismissed = false
-                        dropdownExpanded = true
-                    } else {
-                        userDismissed = true
-                        dropdownExpanded = false
-                    }
+                    if (!wantsOpen) userDismissed = true
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -79,25 +64,40 @@ fun BookSearchScreen(
             ) {
                 OutlinedTextField(
                     value = uiState.query,
-                    onValueChange = { viewModel.updateQuery(it) },
+                    onValueChange = {
+                        userDismissed = false
+                        viewModel.updateQuery(it)
+                    },
                     singleLine = true,
                     placeholder = { Text("Search by title, author, or ISBN...") },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                     trailingIcon = {
-                        if (uiState.query.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.clearSearch() }) {
-                                Icon(Icons.Filled.Close, contentDescription = "Clear")
+                        Row {
+                            IconButton(onClick = {
+                                userDismissed = true
+                                viewModel.submitSearch()
+                            }) {
+                                Icon(Icons.Filled.Search, contentDescription = "Search")
+                            }
+                            if (uiState.query.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.clearSearch() }) {
+                                    Icon(Icons.Filled.Close, contentDescription = "Clear")
+                                }
                             }
                         }
                     },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = {
+                        userDismissed = true
+                        viewModel.submitSearch()
+                    }),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
                 )
 
                 ExposedDropdownMenu(
-                    expanded = dropdownExpanded && hasSuggestions,
-                    onDismissRequest = { dropdownExpanded = false }
+                    expanded = showDropdown,
+                    onDismissRequest = { userDismissed = true }
                 ) {
                     val titles = uiState.suggestions.filterIsInstance<SearchSuggestion.Title>()
                     val authors = uiState.suggestions.filterIsInstance<SearchSuggestion.Author>()
@@ -136,7 +136,7 @@ fun BookSearchScreen(
                                     }
                                 },
                                 onClick = {
-                                    dropdownExpanded = false
+                                    userDismissed = true
                                     navController.navigate("book_detail/${suggestion.id}")
                                 }
                             )
@@ -166,8 +166,9 @@ fun BookSearchScreen(
                                     )
                                 },
                                 onClick = {
-                                    dropdownExpanded = false
                                     viewModel.updateQuery(suggestion.name)
+                                    userDismissed = true
+                                    viewModel.submitSearch()
                                 }
                             )
                         }
@@ -178,12 +179,12 @@ fun BookSearchScreen(
             TabRow(selectedTabIndex = if (onlineMode) 1 else 0) {
                 Tab(
                     selected = !onlineMode,
-                    onClick = { viewModel.search() },
+                    onClick = { viewModel.showLocal() },
                     text = { Text("Local") }
                 )
                 Tab(
                     selected = onlineMode,
-                    onClick = { viewModel.searchOnline() },
+                    onClick = { viewModel.showOnline() },
                     text = { Text("Online") }
                 )
             }
@@ -301,19 +302,24 @@ fun BookSearchScreen(
                                 Text("No results found", color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                    } else if (onlineMode && uiState.query.isBlank()) {
-                        item {
-                            Box(
-                                modifier = Modifier.fillMaxWidth().padding(32.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    "Type a title or author, then tap Online",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
                     }
+                }
+            }
+            if (!uiState.isSearching &&
+                !uiState.isSearchingOnline &&
+                uiState.query.isNotBlank() &&
+                uiState.localResults.isEmpty() &&
+                uiState.onlineResults.isEmpty() &&
+                uiState.onlineError == null
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "Tap the search icon or press Enter to search",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
