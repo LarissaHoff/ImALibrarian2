@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.imalibrarian.data.local.db.dao.BookDao
 import app.imalibrarian.domain.model.Book
+import app.imalibrarian.domain.model.Priority
 import app.imalibrarian.domain.model.ScanResult
+import app.imalibrarian.domain.model.WishlistItem
 import app.imalibrarian.domain.repository.BookRepository
 import app.imalibrarian.domain.repository.WishlistRepository
 import app.imalibrarian.domain.usecase.SearchBooksUseCase
@@ -30,9 +32,10 @@ data class SearchUiState(
     val wishlistResults: List<app.imalibrarian.domain.model.WishlistItem> = emptyList(),
     val isSearching: Boolean = false,
     val isSearchingOnline: Boolean = false,
-    val searchOnline: Boolean = false,
+    val searchOnline: Boolean = true,
     val onlineError: String? = null,
-    val suggestions: List<SearchSuggestion> = emptyList()
+    val suggestions: List<SearchSuggestion> = emptyList(),
+    val wishlistMessage: String? = null
 )
 
 @OptIn(FlowPreview::class)
@@ -76,7 +79,7 @@ class SearchViewModel @Inject constructor(
         onlineSearchJob?.cancel()
 
         _uiState.value = _uiState.value.copy(
-            searchOnline = false,
+            searchOnline = true,
             isSearchingOnline = true,
             onlineResults = emptyList(),
             onlineError = null
@@ -128,11 +131,18 @@ class SearchViewModel @Inject constructor(
         }
     }
 
+    private suspend fun performOnlineSearch(query: String): List<ScanResult> {
+        return withTimeout(ONLINE_TIMEOUT_MILLIS) {
+            searchBooksUseCase.searchOnline(query)
+        }
+    }
+
     private fun runOnlineSearch(query: String) {
         onlineSearchJob = viewModelScope.launch {
             try {
-                val results = withTimeout(ONLINE_TIMEOUT_MILLIS) {
-                    searchBooksUseCase.searchOnline(query)
+                var results = performOnlineSearch(query)
+                if (results.filterIsInstance<ScanResult.Found>().isEmpty()) {
+                    results = performOnlineSearch(query)
                 }
                 _uiState.value = _uiState.value.copy(
                     onlineResults = results.filterIsInstance<ScanResult.Found>(),
@@ -187,6 +197,34 @@ class SearchViewModel @Inject constructor(
         }
     }
 
+    fun addToWishlist(result: ScanResult.Found) {
+        viewModelScope.launch {
+            val authorNames = result.authors.joinToString(", ")
+            val existing = wishlistRepository.getWishlistItemByTitleAndAuthor(
+                result.title, authorNames
+            )
+            if (existing != null) {
+                _uiState.value = _uiState.value.copy(
+                    wishlistMessage = "\"${result.title}\" is already in your wishlist"
+                )
+                return@launch
+            }
+            val item = WishlistItem(
+                title = result.title,
+                authorNames = authorNames,
+                priority = Priority.MEDIUM
+            )
+            wishlistRepository.addWishlistItem(item)
+            _uiState.value = _uiState.value.copy(
+                wishlistMessage = "Added \"${result.title}\" to wishlist"
+            )
+        }
+    }
+
+    fun clearWishlistMessage() {
+        _uiState.value = _uiState.value.copy(wishlistMessage = null)
+    }
+
     fun clearSearch() {
         localSearchJob?.cancel()
         suggestionsJob?.cancel()
@@ -198,6 +236,6 @@ class SearchViewModel @Inject constructor(
     companion object {
         private const val DEBOUNCE_MILLIS = 80L
         private const val SUGGESTION_LIMIT = 8
-        private const val ONLINE_TIMEOUT_MILLIS = 5_000L
+        private const val ONLINE_TIMEOUT_MILLIS = 15_000L
     }
 }

@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,13 +31,25 @@ fun BookSearchScreen(
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val keyboardController = LocalSoftwareKeyboardController.current
     var userDismissed by remember { mutableStateOf(false) }
     val onlineMode = uiState.searchOnline
 
-    val showDropdown = !onlineMode &&
-        uiState.query.isNotBlank() &&
-        uiState.suggestions.isNotEmpty() &&
-        !userDismissed
+    LaunchedEffect(uiState.wishlistMessage) {
+        uiState.wishlistMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearWishlistMessage()
+        }
+    }
+
+    var expanded by remember { mutableStateOf(false) }
+
+    if (uiState.query.isNotBlank() && uiState.suggestions.isNotEmpty() && !userDismissed) {
+        expanded = true
+    } else if (uiState.query.isBlank() || userDismissed) {
+        expanded = false
+    }
 
     Scaffold(
         topBar = {
@@ -47,7 +60,8 @@ fun BookSearchScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -55,7 +69,7 @@ fun BookSearchScreen(
                 .padding(paddingValues)
         ) {
             ExposedDropdownMenuBox(
-                expanded = showDropdown,
+                expanded = expanded,
                 onExpandedChange = { wantsOpen ->
                     if (!wantsOpen) userDismissed = true
                 },
@@ -74,6 +88,7 @@ fun BookSearchScreen(
                     trailingIcon = {
                         Row {
                             IconButton(onClick = {
+                                keyboardController?.hide()
                                 userDismissed = true
                                 viewModel.submitSearch()
                             }) {
@@ -88,6 +103,7 @@ fun BookSearchScreen(
                     },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search, capitalization = KeyboardCapitalization.Sentences),
                     keyboardActions = KeyboardActions(onSearch = {
+                        keyboardController?.hide()
                         userDismissed = true
                         viewModel.submitSearch()
                     }),
@@ -97,7 +113,7 @@ fun BookSearchScreen(
                 )
 
                 ExposedDropdownMenu(
-                    expanded = showDropdown,
+                    expanded = expanded,
                     onDismissRequest = { userDismissed = true }
                 ) {
                     val titles = uiState.suggestions.filterIsInstance<SearchSuggestion.Title>()
@@ -177,16 +193,16 @@ fun BookSearchScreen(
                 }
             }
 
-            TabRow(selectedTabIndex = if (onlineMode) 1 else 0) {
-                Tab(
-                    selected = !onlineMode,
-                    onClick = { viewModel.showLocal() },
-                    text = { Text("Local") }
-                )
+            TabRow(selectedTabIndex = if (onlineMode) 0 else 1) {
                 Tab(
                     selected = onlineMode,
                     onClick = { viewModel.showOnline() },
                     text = { Text("Online") }
+                )
+                Tab(
+                    selected = !onlineMode,
+                    onClick = { viewModel.showLocal() },
+                    text = { Text("Local") }
                 )
             }
 
@@ -246,7 +262,7 @@ fun BookSearchScreen(
                         items(uiState.onlineResults) { result ->
                             AtomicCard(
                                 modifier = Modifier.fillMaxWidth(),
-                                onClick = { navController.navigate("add_book") }
+                                onClick = { viewModel.addToWishlist(result) }
                             ) {
                                 Column(modifier = Modifier.padding(12.dp)) {
                                     Text(result.title, style = MaterialTheme.typography.titleSmall)

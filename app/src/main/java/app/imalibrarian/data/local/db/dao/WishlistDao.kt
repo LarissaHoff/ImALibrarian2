@@ -15,6 +15,9 @@ interface WishlistDao {
     @Query("SELECT * FROM wishlist_items WHERE isbn13 = :isbn13 OR isbn10 = :isbn10")
     suspend fun getWishlistItemByIsbn(isbn10: String, isbn13: String): WishlistItemEntity?
 
+    @Query("SELECT * FROM wishlist_items WHERE title = :title AND authorNames = :authorNames LIMIT 1")
+    suspend fun getWishlistItemByTitleAndAuthor(title: String, authorNames: String): WishlistItemEntity?
+
     @Query("SELECT * FROM wishlist_items WHERE title LIKE '%' || :query || '%'")
     fun searchWishlistItems(query: String): Flow<List<WishlistItemEntity>>
 

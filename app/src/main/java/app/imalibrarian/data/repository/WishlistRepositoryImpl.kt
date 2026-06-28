@@ -28,6 +28,10 @@ class WishlistRepositoryImpl @Inject constructor(
         return wishlistDao.getWishlistItemByIsbn(isbn10, isbn13)?.toDomain()
     }
 
+    override suspend fun getWishlistItemByTitleAndAuthor(title: String, authorNames: String): WishlistItem? {
+        return wishlistDao.getWishlistItemByTitleAndAuthor(title, authorNames)?.toDomain()
+    }
+
     override fun searchWishlistItems(query: String): Flow<List<WishlistItem>> {
         return wishlistDao.searchWishlistItems(query).map { entities ->
             entities.map { it.toDomain() }
