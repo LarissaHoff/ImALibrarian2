@@ -99,7 +99,7 @@ fun WishlistScreen(
                             item = item,
                             onMoveToLibrary = { viewModel.moveToLibrary(item) },
                             onDelete = { viewModel.deleteItem(item) },
-                            onClick = { navController.navigate("wishlist_detail/${item.id}") }
+                            onClick = { }
                         )
                     }
                 }
