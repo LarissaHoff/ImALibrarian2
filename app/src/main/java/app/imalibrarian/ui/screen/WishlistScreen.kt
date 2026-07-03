@@ -99,7 +99,7 @@ fun WishlistScreen(
                             item = item,
                             onMoveToLibrary = { viewModel.moveToLibrary(item) },
                             onDelete = { viewModel.deleteItem(item) },
-                            onClick = { }
+                            onUpdatePriority = { item, priority -> viewModel.updatePriority(item, priority) }
                         )
                     }
                 }
@@ -113,11 +113,13 @@ private fun WishlistItemCard(
     item: WishlistItem,
     onMoveToLibrary: () -> Unit,
     onDelete: () -> Unit,
-    onClick: () -> Unit
+    onUpdatePriority: (WishlistItem, Priority) -> Unit
 ) {
+    var showPriorityDialog by remember { mutableStateOf(false) }
+
     AtomicCard(
         modifier = Modifier.fillMaxWidth(),
-        onClick = onClick
+        onClick = { showPriorityDialog = true }
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -143,5 +145,31 @@ private fun WishlistItemCard(
                 }
             }
         }
+    }
+
+    if (showPriorityDialog) {
+        AlertDialog(
+            onDismissRequest = { showPriorityDialog = false },
+            title = { Text("Set Priority") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Priority.entries.forEach { priority ->
+                        FilterChip(
+                            selected = item.priority == priority,
+                            onClick = {
+                                onUpdatePriority(item, priority)
+                                showPriorityDialog = false
+                            },
+                            label = { Text(priority.name) }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPriorityDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

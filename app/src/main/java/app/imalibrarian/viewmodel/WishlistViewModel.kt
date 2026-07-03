@@ -74,6 +74,12 @@ class WishlistViewModel @Inject constructor(
         }
     }
 
+    fun updatePriority(item: WishlistItem, newPriority: Priority) {
+        viewModelScope.launch {
+            wishlistRepository.updateWishlistItem(item.copy(priority = newPriority))
+        }
+    }
+
     fun moveToLibrary(item: WishlistItem) {
         viewModelScope.launch {
             val book = Book(
