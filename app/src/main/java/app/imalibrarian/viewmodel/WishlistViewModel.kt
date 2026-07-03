@@ -80,6 +80,30 @@ class WishlistViewModel @Inject constructor(
         }
     }
 
+    suspend fun getShareText(): String {
+        val allItems = wishlistRepository.getAllWishlistItems().first()
+        return buildString {
+            appendLine("My Wishlist")
+            appendLine()
+            Priority.entries.forEach { priority ->
+                val priorityItems = allItems.filter { it.priority == priority }
+                if (priorityItems.isNotEmpty()) {
+                    appendLine("${priority.name} PRIORITY:")
+                    priorityItems.forEach { item ->
+                        val author = if (item.authorNames.isNotBlank()) " by ${item.authorNames}" else ""
+                        val isbn = when {
+                            item.isbn13.isNotBlank() -> " (ISBN: ${item.isbn13})"
+                            item.isbn10.isNotBlank() -> " (ISBN: ${item.isbn10})"
+                            else -> ""
+                        }
+                        appendLine("  - ${item.title}$author$isbn")
+                    }
+                    appendLine()
+                }
+            }
+        }
+    }
+
     fun moveToLibrary(item: WishlistItem) {
         viewModelScope.launch {
             val book = Book(

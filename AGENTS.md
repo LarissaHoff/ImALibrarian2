@@ -17,6 +17,11 @@ Personal home-library cataloguing Android app with an Atomic Age / Mid-Century M
 - **PowerShell build**: `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; ./gradlew assembleDebug`
 - **Path quirk**: Project directory contains non-ASCII characters; `android.overridePathCheck=true` is set in `gradle.properties`
 
+## Workflow Rules
+
+- **New feature, new branch**: Before implementing any new feature, ensure the working tree is clean (`git status` shows nothing to commit) and create a new feature branch off `main` (or the appropriate base branch). Branch naming: `feature/<short-description>`.
+- **Clean commits**: Each commit should be atomic and focused — one logical change per commit. No "fix typo" or "wip" commits.
+
 ## Architecture
 
 ```

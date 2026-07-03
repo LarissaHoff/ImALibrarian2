@@ -1,5 +1,6 @@
 package app.imalibrarian.ui.screen
 
+import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,10 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 import app.imalibrarian.domain.model.Priority
 import app.imalibrarian.domain.model.WishlistItem
 import app.imalibrarian.ui.components.AtomicCard
@@ -27,6 +30,8 @@ fun WishlistScreen(
     viewModel: WishlistViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -35,6 +40,18 @@ fun WishlistScreen(
                 actions = {
                     IconButton(onClick = { navController.navigate("add_wishlist") }) {
                         Icon(Icons.Filled.Add, contentDescription = "Add to Wishlist")
+                    }
+                    IconButton(onClick = {
+                        scope.launch {
+                            val shareText = viewModel.getShareText()
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, shareText)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Share Wishlist"))
+                        }
+                    }) {
+                        Icon(Icons.Filled.Share, contentDescription = "Share Wishlist")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
