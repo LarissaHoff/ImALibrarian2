@@ -80,25 +80,38 @@ class WishlistViewModel @Inject constructor(
         }
     }
 
-    suspend fun getShareText(): String {
+    suspend fun getShareText(priority: Priority? = null): String {
         val allItems = wishlistRepository.getAllWishlistItems().first()
+        val items = if (priority != null) allItems.filter { it.priority == priority } else allItems
         return buildString {
             appendLine("My Wishlist")
             appendLine()
-            Priority.entries.forEach { priority ->
-                val priorityItems = allItems.filter { it.priority == priority }
-                if (priorityItems.isNotEmpty()) {
-                    appendLine("${priority.name} PRIORITY:")
-                    priorityItems.forEach { item ->
-                        val author = if (item.authorNames.isNotBlank()) " by ${item.authorNames}" else ""
-                        val isbn = when {
-                            item.isbn13.isNotBlank() -> " (ISBN: ${item.isbn13})"
-                            item.isbn10.isNotBlank() -> " (ISBN: ${item.isbn10})"
-                            else -> ""
-                        }
-                        appendLine("  - ${item.title}$author$isbn")
+            if (priority != null) {
+                items.forEach { item ->
+                    val author = if (item.authorNames.isNotBlank()) " by ${item.authorNames}" else ""
+                    val isbn = when {
+                        item.isbn13.isNotBlank() -> " (ISBN: ${item.isbn13})"
+                        item.isbn10.isNotBlank() -> " (ISBN: ${item.isbn10})"
+                        else -> ""
                     }
-                    appendLine()
+                    appendLine("  - ${item.title}$author$isbn")
+                }
+            } else {
+                Priority.entries.forEach { p ->
+                    val priorityItems = items.filter { it.priority == p }
+                    if (priorityItems.isNotEmpty()) {
+                        appendLine("${p.name} PRIORITY:")
+                        priorityItems.forEach { item ->
+                            val author = if (item.authorNames.isNotBlank()) " by ${item.authorNames}" else ""
+                            val isbn = when {
+                                item.isbn13.isNotBlank() -> " (ISBN: ${item.isbn13})"
+                                item.isbn10.isNotBlank() -> " (ISBN: ${item.isbn10})"
+                                else -> ""
+                            }
+                            appendLine("  - ${item.title}$author$isbn")
+                        }
+                        appendLine()
+                    }
                 }
             }
         }

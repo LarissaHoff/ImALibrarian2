@@ -32,6 +32,7 @@ fun WishlistScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    var showShareMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -41,17 +42,69 @@ fun WishlistScreen(
                     IconButton(onClick = { navController.navigate("add_wishlist") }) {
                         Icon(Icons.Filled.Add, contentDescription = "Add to Wishlist")
                     }
-                    IconButton(onClick = {
-                        scope.launch {
-                            val shareText = viewModel.getShareText()
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, shareText)
-                            }
-                            context.startActivity(Intent.createChooser(intent, "Share Wishlist"))
-                        }
-                    }) {
+                    IconButton(onClick = { showShareMenu = true }) {
                         Icon(Icons.Filled.Share, contentDescription = "Share Wishlist")
+                    }
+                    DropdownMenu(
+                        expanded = showShareMenu,
+                        onDismissRequest = { showShareMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Share All") },
+                            onClick = {
+                                showShareMenu = false
+                                scope.launch {
+                                    val shareText = viewModel.getShareText()
+                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, shareText)
+                                    }
+                                    context.startActivity(Intent.createChooser(intent, "Share Wishlist"))
+                                }
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Share High Priority") },
+                            onClick = {
+                                showShareMenu = false
+                                scope.launch {
+                                    val shareText = viewModel.getShareText(Priority.HIGH)
+                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, shareText)
+                                    }
+                                    context.startActivity(Intent.createChooser(intent, "Share High Priority"))
+                                }
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Share Medium Priority") },
+                            onClick = {
+                                showShareMenu = false
+                                scope.launch {
+                                    val shareText = viewModel.getShareText(Priority.MEDIUM)
+                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, shareText)
+                                    }
+                                    context.startActivity(Intent.createChooser(intent, "Share Medium Priority"))
+                                }
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Share Low Priority") },
+                            onClick = {
+                                showShareMenu = false
+                                scope.launch {
+                                    val shareText = viewModel.getShareText(Priority.LOW)
+                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, shareText)
+                                    }
+                                    context.startActivity(Intent.createChooser(intent, "Share Low Priority"))
+                                }
+                            }
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
