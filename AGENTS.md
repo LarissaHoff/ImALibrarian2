@@ -7,7 +7,7 @@ Personal home-library cataloguing Android app with an Atomic Age / Mid-Century M
 ## Quick Reference
 
 - **Base Folder**: `C:\Users\lari_\Documents\VibeCool\ImALibrarian2` (use this for all relative paths)
-- **Package**: `app.imalibrarian`
+- **Package**: `im.a.librarian`
 - **Min SDK**: 29 (Android 10)
 - **Target SDK**: 35
 - **Kotlin**: 2.0.21
@@ -42,7 +42,7 @@ ui/
   components/   → AtomicCard, StarburstRating, OrbitalProgress, RetroBarChart, badges
   screen/       → 12 Compose screens
   navigation/   → Screen routes + AppNavigation NavHost
-viewmodel/      → 8 HiltViewModels (package: app.imalibrarian.viewmodel)
+viewmodel/      → 8 HiltViewModels (package: im.a.librarian.viewmodel)
 di/             → DatabaseModule, NetworkModule, RepositoryModule
 ```
 
@@ -81,12 +81,12 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 ./gradlew installDebug
 
 # Launch the app on the connected device (after installDebug)
-adb shell monkey -p app.imalibrarian -c android.intent.category.LAUNCHER 1
+adb shell monkey -p im.a.librarian -c android.intent.category.LAUNCHER 1
 # or with an explicit component:
-adb shell am start -n app.imalibrarian/.MainActivity
+adb shell am start -n im.a.librarian/.MainActivity
 
 # Build + install + launch in one go
-./gradlew installDebug && adb shell monkey -p app.imalibrarian -c android.intent.category.LAUNCHER 1
+./gradlew installDebug && adb shell monkey -p im.a.librarian -c android.intent.category.LAUNCHER 1
 ```
 
 ### ADB
@@ -111,7 +111,7 @@ Useful commands:
 & "C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe" connect <ip>:5555
 
 # Tail logcat for this app
-& "C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe" logcat --pid=$(adb shell pidof -s app.imalibrarian)
+& "C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe" logcat --pid=$(adb shell pidof -s im.a.librarian)
 ```
 
 If Gradle wrapper is missing: `./gradlew wrapper` (requires JAVA_HOME)
