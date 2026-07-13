@@ -24,3 +24,9 @@ output.json
 *.hprof
 node_modules/
 .kotlin/
+
+# Signing secrets (never commit)
+keystore.properties
+app/release.keystore
+*.jks
+*.keystore
