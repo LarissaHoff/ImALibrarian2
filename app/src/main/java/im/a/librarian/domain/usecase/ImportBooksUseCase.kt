@@ -15,7 +15,11 @@ class ImportBooksUseCase @Inject constructor(
         val books = json.decodeFromString<List<Book>>(jsonString)
         var count = 0
         for (book in books) {
-            val existing = bookRepository.getBooksByIsbn(book.isbn10, book.isbn13)
+            val existing = if (hasIsbn(book.isbn10, book.isbn13)) {
+                bookRepository.getBooksByIsbn(book.isbn10, book.isbn13)
+            } else {
+                emptyList()
+            }
             if (existing.isEmpty()) {
                 bookRepository.addBook(book.copy(id = 0))
                 count++
@@ -42,7 +46,11 @@ class ImportBooksUseCase @Inject constructor(
 
             val isbn10 = getValue("isbn10")
             val isbn13 = getValue("isbn13")
-            val existing = bookRepository.getBooksByIsbn(isbn10, isbn13)
+            val existing = if (hasIsbn(isbn10, isbn13)) {
+                bookRepository.getBooksByIsbn(isbn10, isbn13)
+            } else {
+                emptyList()
+            }
             if (existing.isNotEmpty()) continue
 
             val book = Book(
@@ -81,6 +89,9 @@ class ImportBooksUseCase @Inject constructor(
         }
         return count
     }
+
+    private fun hasIsbn(isbn10: String, isbn13: String): Boolean =
+        isbn10.isNotBlank() || isbn13.isNotBlank()
 
     private fun parseCsvLine(line: String): List<String> {
         val result = mutableListOf<String>()
