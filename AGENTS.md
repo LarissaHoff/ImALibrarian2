@@ -15,6 +15,9 @@ Personal home-library cataloguing Android app with an Atomic Age / Mid-Century M
 - **Build**: `./gradlew assembleDebug` (requires JAVA_HOME pointing to JDK 17+)
 - **JDK Home**: `C:\Program Files\Android\Android Studio\jbr` (JetBrains Runtime bundled with Android Studio)
 - **PowerShell build**: `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; ./gradlew assembleDebug`
+- **Release signing**: Configured via `keystore.properties` (root of project), loaded in `app/build.gradle.kts`
+- **Keystore**: `app/release.keystore` — alias `imalibrarian`, PKCS12, SHA384withRSA, 2048-bit RSA, valid until 2053
+- **Keystore passwords**: Stored in `keystore.properties` (storePassword, keyPassword, keyAlias, storeFile)
 - **Path quirk**: Project directory contains non-ASCII characters; `android.overridePathCheck=true` is set in `gradle.properties`
 
 ## Workflow Rules
@@ -73,6 +76,13 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 # Build a debug APK (output: app/build/outputs/apk/debug/app-debug.apk)
 ./gradlew assembleDebug
 
+# Build a signed release App Bundle (output: app/build/outputs/bundle/release/app-release.aab)
+# Signing is configured via keystore.properties → app/release.keystore
+./gradlew bundleRelease
+
+# Build a debug App Bundle (output: app/build/outputs/bundle/debug/app-debug.aab)
+./gradlew bundleDebug
+
 # Run unit tests (note: pre-existing compile error in StatisticsUseCaseTest.kt
 # unrelated to recent branches — see Known Warnings)
 ./gradlew testDebugUnitTest
@@ -81,12 +91,12 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 ./gradlew installDebug
 
 # Launch the app on the connected device (after installDebug)
-adb shell monkey -p im.a.librarian -c android.intent.category.LAUNCHER 1
+& "C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe" shell monkey -p im.a.librarian -c android.intent.category.LAUNCHER 1
 # or with an explicit component:
-adb shell am start -n im.a.librarian/.MainActivity
+& "C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe" shell am start -n im.a.librarian/.MainActivity
 
 # Build + install + launch in one go
-./gradlew installDebug && adb shell monkey -p im.a.librarian -c android.intent.category.LAUNCHER 1
+./gradlew installDebug; if ($?) { & "C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe" shell monkey -p im.a.librarian -c android.intent.category.LAUNCHER 1 }
 ```
 
 ### ADB
@@ -111,7 +121,7 @@ Useful commands:
 & "C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe" connect <ip>:5555
 
 # Tail logcat for this app
-& "C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe" logcat --pid=$(adb shell pidof -s im.a.librarian)
+& "C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe" logcat --pid=$(& "C:\Users\lari_\AppData\Local\Android\Sdk\platform-tools\adb.exe" shell pidof -s im.a.librarian)
 ```
 
 If Gradle wrapper is missing: `./gradlew wrapper` (requires JAVA_HOME)
