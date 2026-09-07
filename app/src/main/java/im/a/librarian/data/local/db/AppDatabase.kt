@@ -26,7 +26,7 @@ import im.a.librarian.data.local.db.entity.WishlistItemEntity
         BookPhotoEntity::class,
         WishlistItemEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

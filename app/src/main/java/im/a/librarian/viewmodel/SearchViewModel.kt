@@ -200,9 +200,16 @@ class SearchViewModel @Inject constructor(
     fun addToWishlist(result: ScanResult.Found) {
         viewModelScope.launch {
             val authorNames = result.authors.joinToString(", ")
-            val existing = wishlistRepository.getWishlistItemByTitleAndAuthor(
-                result.title, authorNames
-            )
+            val existing = if (result.isbn13.isNotBlank() || result.isbn10.isNotBlank()) {
+                wishlistRepository.getWishlistItemByIsbn(result.isbn10, result.isbn13)
+                    ?: wishlistRepository.getWishlistItemByTitleAndAuthor(
+                        result.title, authorNames
+                    )
+            } else {
+                wishlistRepository.getWishlistItemByTitleAndAuthor(
+                    result.title, authorNames
+                )
+            }
             if (existing != null) {
                 _uiState.value = _uiState.value.copy(
                     wishlistMessage = "\"${result.title}\" is already in your wishlist"
@@ -211,7 +218,16 @@ class SearchViewModel @Inject constructor(
             }
             val item = WishlistItem(
                 title = result.title,
+                subtitle = result.subtitle,
+                isbn10 = result.isbn10,
+                isbn13 = result.isbn13,
                 authorNames = authorNames,
+                publisher = result.publisher,
+                pageCount = result.pageCount,
+                language = result.language,
+                originalPublicationYear = result.originalPublicationYear,
+                genre = result.genre,
+                coverImagePath = result.coverUrl,
                 priority = Priority.MEDIUM
             )
             wishlistRepository.addWishlistItem(item)
