@@ -3,6 +3,7 @@ package im.a.librarian.domain.usecase
 import im.a.librarian.domain.model.Book
 import im.a.librarian.domain.model.ReadStatus
 import im.a.librarian.domain.repository.BookRepository
+import im.a.librarian.domain.util.IsbnNormalizer
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
@@ -15,13 +16,14 @@ class ImportBooksUseCase @Inject constructor(
         val books = json.decodeFromString<List<Book>>(jsonString)
         var count = 0
         for (book in books) {
-            val existing = if (hasIsbn(book.isbn10, book.isbn13)) {
-                bookRepository.getBooksByIsbn(book.isbn10, book.isbn13)
+            val (isbn10, isbn13) = normalizeIsbnPair(book.isbn10, book.isbn13)
+            val existing = if (isbn10.isNotBlank() || isbn13.isNotBlank()) {
+                bookRepository.getBooksByIsbn(isbn10, isbn13)
             } else {
                 emptyList()
             }
             if (existing.isEmpty()) {
-                bookRepository.addBook(book.copy(id = 0))
+                bookRepository.addBook(book.copy(id = 0, isbn10 = isbn10, isbn13 = isbn13))
                 count++
             }
         }
@@ -44,9 +46,8 @@ class ImportBooksUseCase @Inject constructor(
                 if (index >= 0 && index < values.size) values[index] else ""
             }
 
-            val isbn10 = getValue("isbn10")
-            val isbn13 = getValue("isbn13")
-            val existing = if (hasIsbn(isbn10, isbn13)) {
+            val (isbn10, isbn13) = normalizeIsbnPair(getValue("isbn10"), getValue("isbn13"))
+            val existing = if (isbn10.isNotBlank() || isbn13.isNotBlank()) {
                 bookRepository.getBooksByIsbn(isbn10, isbn13)
             } else {
                 emptyList()
@@ -90,8 +91,21 @@ class ImportBooksUseCase @Inject constructor(
         return count
     }
 
-    private fun hasIsbn(isbn10: String, isbn13: String): Boolean =
-        isbn10.isNotBlank() || isbn13.isNotBlank()
+    private fun normalizeIsbnPair(raw10: String, raw13: String): Pair<String, String> {
+        val clean10 = IsbnNormalizer.sanitize(raw10)
+        val clean13 = IsbnNormalizer.sanitize(raw13)
+        val isbn13 = when {
+            clean13.isNotBlank() -> IsbnNormalizer.toIsbn13(clean13).ifBlank { clean13 }
+            clean10.isNotBlank() -> IsbnNormalizer.toIsbn13(clean10)
+            else -> ""
+        }
+        val isbn10 = when {
+            clean10.isNotBlank() -> clean10
+            isbn13.isNotBlank() -> IsbnNormalizer.toIsbn10(isbn13)
+            else -> ""
+        }
+        return isbn10 to isbn13
+    }
 
     private fun parseCsvLine(line: String): List<String> {
         val result = mutableListOf<String>()

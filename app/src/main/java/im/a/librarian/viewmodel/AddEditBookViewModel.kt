@@ -10,9 +10,11 @@ import im.a.librarian.domain.model.ScanResult
 import im.a.librarian.domain.usecase.AddBookUseCase
 import im.a.librarian.domain.usecase.ScanBarcodeUseCase
 import im.a.librarian.domain.repository.BookRepository
+import im.a.librarian.domain.util.IsbnNormalizer
 import im.a.librarian.data.GenreCatalog
 import im.a.librarian.ui.theme.LanguageFlags
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,8 +23,7 @@ data class AddEditBookUiState(
     val id: Long = 0,
     val title: String = "",
     val subtitle: String = "",
-    val isbn10: String = "",
-    val isbn13: String = "",
+    val isbn: String = "",
     val authorNames: String = "",
     val publisher: String = "",
     val placeOfPublication: String = "",
@@ -78,6 +79,8 @@ class AddEditBookViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(AddEditBookUiState())
     val uiState: StateFlow<AddEditBookUiState> = _uiState.asStateFlow()
 
+    private var duplicateCheckJob: Job? = null
+
     private var allGenres: List<String> = GenreCatalog.allTerms
     private var allAuthors: List<String> = emptyList()
     private var allSeries: List<String> = emptyList()
@@ -118,8 +121,7 @@ class AddEditBookViewModel @Inject constructor(
                     title = it.title,
                     subtitle = it.subtitle,
                     authorNames = it.authorNames,
-                    isbn10 = it.isbn10,
-                    isbn13 = it.isbn13,
+                    isbn = it.isbn13.ifBlank { it.isbn10 },
                     publisher = it.publisher,
                     placeOfPublication = it.placeOfPublication,
                     pageCount = it.pageCount.toString(),
@@ -155,7 +157,7 @@ class AddEditBookViewModel @Inject constructor(
     private fun lookupScannedIsbn(isbn: String) {
         viewModelScope.launch {
             Log.d("BookLookup", "Looking up ISBN: $isbn")
-            _uiState.value = _uiState.value.copy(isbn13 = isbn, isLookingUp = true, lookupFailed = false)
+            _uiState.value = _uiState.value.copy(isbn = isbn, isLookingUp = true, lookupFailed = false)
             val result = scanBarcodeUseCase.lookupBarcode(isbn)
             when (result) {
                 is ScanResult.Found -> {
@@ -179,8 +181,7 @@ class AddEditBookViewModel @Inject constructor(
             title = result.title,
             subtitle = result.subtitle,
             authorNames = result.authors.joinToString(", "),
-            isbn10 = result.isbn10,
-            isbn13 = result.isbn13,
+            isbn = result.isbn13.ifBlank { result.isbn10 },
             publisher = result.publisher,
             pageCount = if (result.pageCount > 0) result.pageCount.toString() else "",
             language = result.language,
@@ -198,8 +199,10 @@ class AddEditBookViewModel @Inject constructor(
 
     fun updateTitle(title: String) { _uiState.value = _uiState.value.copy(title = title) }
     fun updateSubtitle(subtitle: String) { _uiState.value = _uiState.value.copy(subtitle = subtitle) }
-    fun updateIsbn10(isbn: String) { _uiState.value = _uiState.value.copy(isbn10 = isbn) }
-    fun updateIsbn13(isbn: String) { _uiState.value = _uiState.value.copy(isbn13 = isbn) }
+    fun updateIsbn(isbn: String) {
+        _uiState.value = _uiState.value.copy(isbn = isbn)
+        checkDuplicate()
+    }
     fun updateAuthorNames(authors: String) {
         _uiState.value = _uiState.value.copy(authorNames = authors)
         refreshAuthorSuggestions(authors)
@@ -319,12 +322,18 @@ class AddEditBookViewModel @Inject constructor(
     }
 
     private fun checkDuplicate() {
-        viewModelScope.launch {
+        duplicateCheckJob?.cancel()
+        duplicateCheckJob = viewModelScope.launch {
             val state = _uiState.value
-            if (state.isbn10.isNotBlank() || state.isbn13.isNotBlank()) {
-                val existing = addBookUseCase.checkDuplicate(state.isbn10, state.isbn13)
-                _uiState.value = _uiState.value.copy(isDuplicate = existing.isNotEmpty())
+            val sanitized = IsbnNormalizer.sanitize(state.isbn)
+            if (sanitized.isBlank()) {
+                _uiState.value = _uiState.value.copy(isDuplicate = false)
+                return@launch
             }
+            val isbn13 = IsbnNormalizer.toIsbn13(sanitized).ifBlank { sanitized }
+            val isbn10 = if (sanitized.length == 10) sanitized else IsbnNormalizer.toIsbn10(isbn13)
+            val existing = addBookUseCase.checkDuplicate(isbn10, isbn13)
+            _uiState.value = _uiState.value.copy(isDuplicate = existing.any { it.id != state.id })
         }
     }
 
@@ -332,13 +341,16 @@ class AddEditBookViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true)
             val state = _uiState.value
+            val sanitizedIsbn = IsbnNormalizer.sanitize(state.isbn)
+            val isbn13 = IsbnNormalizer.toIsbn13(sanitizedIsbn).ifBlank { sanitizedIsbn }
+            val isbn10 = if (sanitizedIsbn.length == 10) sanitizedIsbn else IsbnNormalizer.toIsbn10(isbn13)
             val book = Book(
                 id = if (state.isEditing) state.id else 0,
                 title = state.title,
                 subtitle = state.subtitle,
                 authorNames = state.authorNames,
-                isbn10 = state.isbn10,
-                isbn13 = state.isbn13,
+                isbn10 = isbn10,
+                isbn13 = isbn13,
                 publisher = state.publisher,
                 placeOfPublication = state.placeOfPublication,
                 pageCount = state.pageCount.toIntOrNull() ?: 0,

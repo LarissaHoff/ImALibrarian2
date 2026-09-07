@@ -216,24 +216,13 @@ fun AddEditBookScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = uiState.isbn10,
-                    onValueChange = { viewModel.updateIsbn10(it.trimEnd()) },
-                    label = { Text("ISBN-10") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-                OutlinedTextField(
-                    value = uiState.isbn13,
-                    onValueChange = { viewModel.updateIsbn13(it.trimEnd()) },
-                    label = { Text("ISBN-13") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-            }
+            OutlinedTextField(
+                value = uiState.isbn,
+                onValueChange = { viewModel.updateIsbn(it.trimEnd()) },
+                label = { Text("ISBN") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
 
             if (uiState.isLookingUp) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Turquoise)

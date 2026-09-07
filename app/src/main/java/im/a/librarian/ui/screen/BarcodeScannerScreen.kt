@@ -69,6 +69,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import im.a.librarian.scanner.BarcodeScannerManager
 import im.a.librarian.scanner.IsbnTextScannerManager
+import im.a.librarian.domain.util.IsbnNormalizer
 import im.a.librarian.ui.navigation.Screen
 import im.a.librarian.ui.theme.Turquoise
 import com.google.mlkit.vision.common.InputImage
@@ -508,10 +509,8 @@ private fun IsbnCandidateDialog(
     var selectedIsbn by remember { mutableStateOf(candidates.firstOrNull() ?: "") }
     var manualEntry by remember { mutableStateOf("") }
 
-    val manualIsbn = manualEntry
-        .filter { it.isDigit() || it == 'X' || it == 'x' }
-        .uppercase()
-        .takeIf { isValidIsbnShape(it) }
+    val manualIsbn = IsbnNormalizer.sanitize(manualEntry)
+        .takeIf { IsbnNormalizer.isValidShape(it) }
     val confirmedIsbn = manualIsbn
         ?: selectedIsbn.takeIf { it.isNotEmpty() && manualEntry.isBlank() }
 
@@ -572,13 +571,6 @@ private fun IsbnCandidateDialog(
             }
         }
     )
-}
-
-private fun isValidIsbnShape(isbn: String): Boolean {
-    return (isbn.length == 13 && (isbn.startsWith("978") || isbn.startsWith("979"))) ||
-        (isbn.length == 10 &&
-            isbn.take(9).all { it.isDigit() } &&
-            (isbn.last().isDigit() || isbn.last() == 'X'))
 }
 
 @dagger.hilt.android.lifecycle.HiltViewModel
