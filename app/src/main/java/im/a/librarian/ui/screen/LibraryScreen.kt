@@ -322,6 +322,15 @@ private fun BookGridItem(
                 } else {
                     Spacer(modifier = Modifier.width(0.dp))
                 }
+                if (book.isFavourite) {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = "Favourite",
+                        tint = Teal,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
                 ReadStatusBadge(status = book.readStatus)
             }
         }
