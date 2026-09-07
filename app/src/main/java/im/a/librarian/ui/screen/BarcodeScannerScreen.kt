@@ -13,17 +13,23 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.VideocamOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -31,8 +37,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -49,6 +60,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -56,6 +68,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import im.a.librarian.scanner.BarcodeScannerManager
+import im.a.librarian.scanner.IsbnTextScannerManager
 import im.a.librarian.ui.navigation.Screen
 import im.a.librarian.ui.theme.Turquoise
 import com.google.mlkit.vision.common.InputImage
@@ -73,10 +86,20 @@ private const val TAG = "BarcodeScanner"
 @Composable
 fun BarcodeScannerScreen(
     navController: NavController,
-    barcodeScannerManager: BarcodeScannerManager = hiltViewModel<BarcodeScannerViewModel>().scanner
+    barcodeScannerManager: BarcodeScannerManager = hiltViewModel<BarcodeScannerViewModel>().scanner,
+    isbnTextScannerManager: IsbnTextScannerManager = hiltViewModel<BarcodeScannerViewModel>().isbnScanner
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    var statusMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(statusMessage) {
+        statusMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            statusMessage = null
+        }
+    }
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -95,6 +118,7 @@ fun BarcodeScannerScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Scan Barcode") },
@@ -119,6 +143,7 @@ fun BarcodeScannerScreen(
             if (hasCameraPermission) {
                 var scannedCode by remember { mutableStateOf<String?>(null) }
                 var isLookingUp by remember { mutableStateOf(false) }
+                var isbnCandidates by remember { mutableStateOf<List<String>>(emptyList()) }
 
                 if (scannedCode != null) {
                     Box(
@@ -143,8 +168,26 @@ fun BarcodeScannerScreen(
                         modifier = Modifier.fillMaxSize(),
                         lifecycleOwner = lifecycleOwner,
                         barcodeScannerManager = barcodeScannerManager,
+                        isbnTextScannerManager = isbnTextScannerManager,
                         onBarcodeDetected = { code ->
                             scannedCode = code
+                        },
+                        onIsbnCandidates = { candidates ->
+                            isbnCandidates = candidates
+                        },
+                        onNothingFound = {
+                            statusMessage = "No barcode or ISBN found. Try again or enter it manually."
+                        }
+                    )
+                }
+
+                if (isbnCandidates.isNotEmpty()) {
+                    IsbnCandidateDialog(
+                        candidates = isbnCandidates,
+                        onDismiss = { isbnCandidates = emptyList() },
+                        onConfirm = { isbn ->
+                            isbnCandidates = emptyList()
+                            scannedCode = isbn
                         }
                     )
                 }
@@ -181,7 +224,10 @@ private fun CameraBarcodePreview(
     modifier: Modifier,
     lifecycleOwner: androidx.lifecycle.LifecycleOwner,
     barcodeScannerManager: BarcodeScannerManager,
-    onBarcodeDetected: (String) -> Unit
+    isbnTextScannerManager: IsbnTextScannerManager,
+    onBarcodeDetected: (String) -> Unit,
+    onIsbnCandidates: (List<String>) -> Unit,
+    onNothingFound: () -> Unit
 ) {
     val context = LocalContext.current
     val previewView = remember { PreviewView(context) }
@@ -234,6 +280,18 @@ private fun CameraBarcodePreview(
 
         ScanOverlay()
 
+        Text(
+            "No barcode? Capture the printed ISBN number.",
+            color = Color.White,
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 104.dp)
+                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+
         Button(
             onClick = {
                 val capture = imageCapture ?: return@Button
@@ -256,11 +314,19 @@ private fun CameraBarcodePreview(
                                                 onBarcodeDetected(results.first().value)
                                             }
                                         } else {
-                                            withContext(Dispatchers.Main) { isScanning = false }
+                                            val candidates = isbnTextScannerManager.scanImage(inputImage)
+                                            withContext(Dispatchers.Main) {
+                                                if (candidates.isNotEmpty()) {
+                                                    Log.d(TAG, "ISBN candidates from OCR: $candidates")
+                                                    onIsbnCandidates(candidates)
+                                                } else {
+                                                    onNothingFound()
+                                                }
+                                            }
                                         }
                                     } catch (e: Exception) {
                                         Log.e(TAG, "Barcode scan error", e)
-                                        withContext(Dispatchers.Main) { isScanning = false }
+                                        withContext(Dispatchers.Main) { onNothingFound() }
                                     } finally {
                                         imageProxy.close()
                                     }
@@ -400,7 +466,85 @@ private fun ScanOverlay() {
     }
 }
 
+@Composable
+private fun IsbnCandidateDialog(
+    candidates: List<String>,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var selectedIsbn by remember { mutableStateOf(candidates.firstOrNull() ?: "") }
+    var manualEntry by remember { mutableStateOf("") }
+
+    val manualIsbn = manualEntry
+        .filter { it.isDigit() || it == 'X' || it == 'x' }
+        .uppercase()
+        .takeIf { isValidIsbnShape(it) }
+    val confirmedIsbn = manualIsbn ?: selectedIsbn.takeIf { manualEntry.isBlank() }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("No barcode found") },
+        text = {
+            Column {
+                Text(
+                    "ISBN number detected in the image — confirm it or enter it manually:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                candidates.forEach { candidate ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                selectedIsbn = candidate
+                                manualEntry = ""
+                            },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = manualEntry.isBlank() && selectedIsbn == candidate,
+                            onClick = {
+                                selectedIsbn = candidate
+                                manualEntry = ""
+                            }
+                        )
+                        Text(candidate, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+                OutlinedTextField(
+                    value = manualEntry,
+                    onValueChange = { manualEntry = it },
+                    label = { Text("Enter ISBN manually") },
+                    singleLine = true,
+                    isError = manualEntry.isNotBlank() && manualIsbn == null
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { confirmedIsbn?.let(onConfirm) },
+                enabled = confirmedIsbn != null
+            ) {
+                Text("Use ISBN")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+private fun isValidIsbnShape(isbn: String): Boolean {
+    return (isbn.length == 13 && (isbn.startsWith("978") || isbn.startsWith("979"))) ||
+        (isbn.length == 10 &&
+            isbn.take(9).all { it.isDigit() } &&
+            (isbn.last().isDigit() || isbn.last() == 'X'))
+}
+
 @dagger.hilt.android.lifecycle.HiltViewModel
 class BarcodeScannerViewModel @javax.inject.Inject constructor(
-    val scanner: BarcodeScannerManager
+    val scanner: BarcodeScannerManager,
+    val isbnScanner: IsbnTextScannerManager
 ) : androidx.lifecycle.ViewModel()
