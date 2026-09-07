@@ -158,6 +158,7 @@ class AddEditBookViewModel @Inject constructor(
         viewModelScope.launch {
             Log.d("BookLookup", "Looking up ISBN: $isbn")
             _uiState.value = _uiState.value.copy(isbn = isbn, isLookingUp = true, lookupFailed = false)
+            checkDuplicate()
             val result = scanBarcodeUseCase.lookupBarcode(isbn)
             when (result) {
                 is ScanResult.Found -> {
