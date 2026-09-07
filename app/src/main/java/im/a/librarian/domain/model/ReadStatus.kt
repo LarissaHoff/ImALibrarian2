@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class ReadStatus(val displayName: String) {
     UNREAD("Unread"),
-    CURRENTLY_READING("Reading"),
+    CURRENTLY_READING("Currently Reading"),
     FINISHED("Finished"),
     DID_NOT_FINISH("DNF")
 }
