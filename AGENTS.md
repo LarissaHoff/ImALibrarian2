@@ -23,6 +23,7 @@ Personal home-library cataloguing Android app with an Atomic Age / Mid-Century M
 ## Workflow Rules
 
 - **New feature, new branch**: Before implementing any new feature, ensure the working tree is clean (`git status` shows nothing to commit) and create a new feature branch off `main` (or the appropriate base branch). Branch naming: `feature/<short-description>`.
+- **No pull requests**: The user is the sole committer of this repository. Never create PRs — just push branches (or merge to the base branch) directly when asked.
 - **Clean commits**: Each commit should be atomic and focused — one logical change per commit. No "fix typo" or "wip" commits.
 - **Auto-build & install after implementation**: Once the user gives the go-ahead to implement, after completing the changes, automatically build (`assembleDebug`) and install (`installDebug`) the debug APK on the connected device/emulator without being asked. Verify the build succeeds first before committing.
 
