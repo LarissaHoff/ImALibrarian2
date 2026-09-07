@@ -78,9 +78,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.Executors
 
 private const val TAG = "BarcodeScanner"
+private const val BARCODE_SCAN_TIMEOUT_MS = 6_000L
+private const val ISBN_OCR_TIMEOUT_MS = 12_000L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -144,6 +147,7 @@ fun BarcodeScannerScreen(
                 var scannedCode by remember { mutableStateOf<String?>(null) }
                 var isLookingUp by remember { mutableStateOf(false) }
                 var isbnCandidates by remember { mutableStateOf<List<String>>(emptyList()) }
+                var showManualEntry by remember { mutableStateOf(false) }
 
                 if (scannedCode != null) {
                     Box(
@@ -177,16 +181,23 @@ fun BarcodeScannerScreen(
                         },
                         onNothingFound = {
                             statusMessage = "No barcode or ISBN found. Try again or enter it manually."
+                        },
+                        onManualEntry = {
+                            showManualEntry = true
                         }
                     )
                 }
 
-                if (isbnCandidates.isNotEmpty()) {
+                if (isbnCandidates.isNotEmpty() || showManualEntry) {
                     IsbnCandidateDialog(
                         candidates = isbnCandidates,
-                        onDismiss = { isbnCandidates = emptyList() },
+                        onDismiss = {
+                            isbnCandidates = emptyList()
+                            showManualEntry = false
+                        },
                         onConfirm = { isbn ->
                             isbnCandidates = emptyList()
+                            showManualEntry = false
                             scannedCode = isbn
                         }
                     )
@@ -227,7 +238,8 @@ private fun CameraBarcodePreview(
     isbnTextScannerManager: IsbnTextScannerManager,
     onBarcodeDetected: (String) -> Unit,
     onIsbnCandidates: (List<String>) -> Unit,
-    onNothingFound: () -> Unit
+    onNothingFound: () -> Unit,
+    onManualEntry: () -> Unit
 ) {
     val context = LocalContext.current
     val previewView = remember { PreviewView(context) }
@@ -280,17 +292,30 @@ private fun CameraBarcodePreview(
 
         ScanOverlay()
 
-        Text(
-            "No barcode? Capture the printed ISBN number.",
-            color = Color.White,
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 104.dp)
-                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
-                .padding(horizontal = 12.dp, vertical = 6.dp)
-        )
+                .padding(bottom = 104.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            TextButton(
+                onClick = onManualEntry,
+                colors = ButtonDefaults.textButtonColors(contentColor = Color.White),
+                modifier = Modifier
+                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+            ) {
+                Text("Type ISBN manually")
+            }
+            Text(
+                "No barcode? Capture the printed ISBN number.",
+                color = Color.White,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
 
         Button(
             onClick = {
@@ -307,15 +332,20 @@ private fun CameraBarcodePreview(
                                 )
                                 scanScope.launch {
                                     try {
-                                        val results = barcodeScannerManager.scanImage(inputImage)
+                                        val results = withTimeoutOrNull(BARCODE_SCAN_TIMEOUT_MS) {
+                                            barcodeScannerManager.scanImage(inputImage)
+                                        } ?: emptyList()
                                         if (results.isNotEmpty()) {
                                             Log.d(TAG, "Barcode detected: ${results.first().value}")
                                             withContext(Dispatchers.Main) {
                                                 onBarcodeDetected(results.first().value)
                                             }
                                         } else {
-                                            val candidates = isbnTextScannerManager.scanImage(inputImage)
+                                            val candidates = withTimeoutOrNull(ISBN_OCR_TIMEOUT_MS) {
+                                                isbnTextScannerManager.scanImage(inputImage)
+                                            } ?: emptyList()
                                             withContext(Dispatchers.Main) {
+                                                isScanning = false
                                                 if (candidates.isNotEmpty()) {
                                                     Log.d(TAG, "ISBN candidates from OCR: $candidates")
                                                     onIsbnCandidates(candidates)
@@ -326,7 +356,10 @@ private fun CameraBarcodePreview(
                                         }
                                     } catch (e: Exception) {
                                         Log.e(TAG, "Barcode scan error", e)
-                                        withContext(Dispatchers.Main) { onNothingFound() }
+                                        withContext(Dispatchers.Main) {
+                                            isScanning = false
+                                            onNothingFound()
+                                        }
                                     } finally {
                                         imageProxy.close()
                                     }
@@ -479,15 +512,20 @@ private fun IsbnCandidateDialog(
         .filter { it.isDigit() || it == 'X' || it == 'x' }
         .uppercase()
         .takeIf { isValidIsbnShape(it) }
-    val confirmedIsbn = manualIsbn ?: selectedIsbn.takeIf { manualEntry.isBlank() }
+    val confirmedIsbn = manualIsbn
+        ?: selectedIsbn.takeIf { it.isNotEmpty() && manualEntry.isBlank() }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("No barcode found") },
+        title = { Text(if (candidates.isEmpty()) "Enter ISBN" else "No barcode found") },
         text = {
             Column {
                 Text(
-                    "ISBN number detected in the image — confirm it or enter it manually:",
+                    if (candidates.isEmpty()) {
+                        "Enter the ISBN number printed on the book (copyright page or above the barcode):"
+                    } else {
+                        "ISBN number detected in the image — confirm it or enter it manually:"
+                    },
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.size(8.dp))
