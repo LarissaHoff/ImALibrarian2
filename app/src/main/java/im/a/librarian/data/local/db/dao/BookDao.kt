@@ -58,7 +58,9 @@ interface BookDao {
     @Query("SELECT DISTINCT genre FROM books ORDER BY genre")
     suspend fun getAllGenres(): List<String>
 
-    @Query("SELECT DISTINCT authorNames FROM books ORDER BY authorNames")
+    // One row per book (no DISTINCT) so author frequency counts reflect book counts;
+    // callers dedupe for autocomplete use cases
+    @Query("SELECT authorNames FROM books")
     suspend fun getAllAuthors(): List<String>
 
     @Query("SELECT DISTINCT seriesName FROM books WHERE seriesName != '' ORDER BY seriesName")

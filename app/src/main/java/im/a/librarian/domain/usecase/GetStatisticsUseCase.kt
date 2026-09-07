@@ -22,7 +22,9 @@ class GetStatisticsUseCase @Inject constructor(
         val allAuthors = bookRepository.getAllAuthors()
 
         val mostCommonAuthors = allAuthors
-            .flatMap { it.split(", ") }
+            .flatMap { it.split(",") }
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
             .groupingBy { it }
             .eachCount()
             .map { AuthorCount(it.key, it.value) }
