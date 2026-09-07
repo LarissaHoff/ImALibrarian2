@@ -30,6 +30,7 @@ import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import im.a.librarian.domain.model.ReadStatus
+import im.a.librarian.ui.components.StarburstRating
 import im.a.librarian.ui.theme.*
 import im.a.librarian.viewmodel.AddEditBookViewModel
 import coil.compose.AsyncImage
@@ -393,6 +394,12 @@ fun AddEditBookScreen(
                     )
                 }
             }
+
+            Text("Your Rating:", style = MaterialTheme.typography.labelMedium)
+            StarburstRating(
+                rating = uiState.rating,
+                onRatingChanged = { viewModel.updateRating(it) }
+            )
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
