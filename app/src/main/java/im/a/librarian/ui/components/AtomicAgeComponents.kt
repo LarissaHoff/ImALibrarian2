@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,7 +20,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -226,20 +229,35 @@ fun RetroBarChart(
     labelColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
     val maxValue = data.values.maxOrNull() ?: 1
+
+    val labelStyle = TextStyle(fontSize = 10.sp, color = labelColor)
+    val labelLayouts = remember(data, labelColor, textMeasurer) {
+        data.entries.map { entry ->
+            val label = if (entry.key.length > 14) entry.key.take(13) + "…" else entry.key
+            textMeasurer.measure(label, labelStyle)
+        }
+    }
+    val maxLabelWidth = labelLayouts.maxOfOrNull { it.size.width } ?: 0
+    val labelAreaHeight = 10.dp + with(density) { maxLabelWidth.toDp() }
+    val chartAreaHeight = 180.dp
 
     Column(modifier = modifier) {
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(chartAreaHeight + labelAreaHeight)
         ) {
+            val labelGap = 8.dp.toPx()
+            val labelAreaPx = labelAreaHeight.toPx()
+            val chartHeight = size.height - labelGap - labelAreaPx
             val barWidth = size.width / (data.size * 1.5f)
             val spacing = barWidth * 0.5f
             data.entries.forEachIndexed { index, entry ->
-                val barHeight = (entry.value.toFloat() / maxValue) * size.height * 0.8f
+                val barHeight = (entry.value.toFloat() / maxValue) * chartHeight * 0.9f
                 val x = spacing + index * (barWidth + spacing)
-                val y = size.height - barHeight
+                val y = chartHeight - barHeight
 
                 drawRoundRect(
                     color = barColor,
@@ -248,23 +266,21 @@ fun RetroBarChart(
                     cornerRadius = CornerRadius(barWidth / 4)
                 )
 
-                val labelLayout = textMeasurer.measure(
-                    entry.key.take(8),
-                    TextStyle(fontSize = 10.sp, color = labelColor)
-                )
-                drawText(
-                    labelLayout,
-                    topLeft = Offset(x - 4, size.height + 2.dp.toPx())
-                )
-
                 val valueLayout = textMeasurer.measure(
                     entry.value.toString(),
                     TextStyle(fontSize = 10.sp, color = labelColor)
                 )
                 drawText(
                     valueLayout,
-                    topLeft = Offset(x + barWidth / 4, y - 16.dp.toPx())
+                    topLeft = Offset(x + barWidth / 4, y - 14.dp.toPx())
                 )
+
+                val labelLayout = labelLayouts[index]
+                val labelHeight = labelLayout.size.height.toFloat()
+                val pivot = Offset(x + barWidth / 2 - labelHeight / 2, size.height)
+                rotate(degrees = -90f, pivot = pivot) {
+                    drawText(labelLayout, topLeft = pivot)
+                }
             }
         }
     }
