@@ -207,13 +207,13 @@ fun AddEditBookScreen(
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
             )
 
-            OutlinedTextField(
+            AutocompleteField(
                 value = uiState.authorNames,
                 onValueChange = { viewModel.updateAuthorNames(it.trimSuggestionSpace(uiState.authorNames)) },
-                label = { Text("Author(s)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+                suggestions = uiState.authorSuggestions,
+                label = "Author(s)",
+                onSuggestionSelected = { viewModel.selectAuthorSuggestion(it) },
+                modifier = Modifier.fillMaxWidth()
             )
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -239,13 +239,13 @@ fun AddEditBookScreen(
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Turquoise)
             }
 
-            OutlinedTextField(
+            AutocompleteField(
                 value = uiState.publisher,
                 onValueChange = { viewModel.updatePublisher(it.trimSuggestionSpace(uiState.publisher)) },
-                label = { Text("Publisher") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+                suggestions = uiState.publisherSuggestions,
+                label = "Publisher",
+                onSuggestionSelected = { viewModel.selectPublisherSuggestion(it) },
+                modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
@@ -344,14 +344,14 @@ fun AddEditBookScreen(
             Text("Classification", style = MaterialTheme.typography.titleMedium, color = Turquoise)
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GenreAutocompleteField(
+                AutocompleteField(
                     value = uiState.genre,
                     onValueChange = { viewModel.updateGenre(it.trimSuggestionSpace(uiState.genre)) },
                     suggestions = uiState.genreSuggestions,
                     label = "Genre",
                     modifier = Modifier.weight(1f)
                 )
-                GenreAutocompleteField(
+                AutocompleteField(
                     value = uiState.subgenre,
                     onValueChange = { viewModel.updateSubgenre(it.trimSuggestionSpace(uiState.subgenre)) },
                     suggestions = uiState.subgenreSuggestions,
@@ -361,13 +361,13 @@ fun AddEditBookScreen(
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
+                AutocompleteField(
                     value = uiState.seriesName,
                     onValueChange = { viewModel.updateSeriesName(it.trimSuggestionSpace(uiState.seriesName)) },
-                    label = { Text("Series") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+                    suggestions = uiState.seriesSuggestions,
+                    label = "Series",
+                    onSuggestionSelected = { viewModel.selectSeriesSuggestion(it) },
+                    modifier = Modifier.weight(1f)
                 )
                 OutlinedTextField(
                     value = uiState.seriesNumber,
@@ -524,12 +524,13 @@ private fun String.trimSuggestionSpace(currentValue: String): String {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun GenreAutocompleteField(
+private fun AutocompleteField(
     value: String,
     onValueChange: (String) -> Unit,
     suggestions: List<String>,
     label: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSuggestionSelected: (String) -> Unit = onValueChange
 ) {
     var userDismissed by remember { mutableStateOf(false) }
     val showDropdown = value.isNotBlank() && suggestions.isNotEmpty() && !userDismissed
@@ -558,7 +559,7 @@ private fun GenreAutocompleteField(
                 DropdownMenuItem(
                     text = { Text(suggestion) },
                     onClick = {
-                        onValueChange(suggestion)
+                        onSuggestionSelected(suggestion)
                         userDismissed = true
                     }
                 )

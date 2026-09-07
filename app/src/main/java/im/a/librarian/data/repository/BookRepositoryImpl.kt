@@ -89,6 +89,8 @@ class BookRepositoryImpl @Inject constructor(
 
     override suspend fun getAllGenres(): List<String> = bookDao.getAllGenres()
     override suspend fun getAllAuthors(): List<String> = bookDao.getAllAuthors()
+    override suspend fun getAllSeriesNames(): List<String> = bookDao.getAllSeriesNames()
+    override suspend fun getAllPublishers(): List<String> = bookDao.getAllPublishers()
 
     private fun BookEntity.toDomain() = Book(
         id = id,

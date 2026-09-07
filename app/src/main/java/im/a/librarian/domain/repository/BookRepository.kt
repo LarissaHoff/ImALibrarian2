@@ -22,4 +22,6 @@ interface BookRepository {
     suspend fun getBookCountByGenre(): Map<String, Int>
     suspend fun getAllGenres(): List<String>
     suspend fun getAllAuthors(): List<String>
+    suspend fun getAllSeriesNames(): List<String>
+    suspend fun getAllPublishers(): List<String>
 }

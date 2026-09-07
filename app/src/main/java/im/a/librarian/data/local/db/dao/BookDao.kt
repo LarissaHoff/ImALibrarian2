@@ -61,6 +61,12 @@ interface BookDao {
     @Query("SELECT DISTINCT authorNames FROM books ORDER BY authorNames")
     suspend fun getAllAuthors(): List<String>
 
+    @Query("SELECT DISTINCT seriesName FROM books WHERE seriesName != '' ORDER BY seriesName")
+    suspend fun getAllSeriesNames(): List<String>
+
+    @Query("SELECT DISTINCT publisher FROM books WHERE publisher != '' ORDER BY publisher")
+    suspend fun getAllPublishers(): List<String>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBook(book: BookEntity): Long
 

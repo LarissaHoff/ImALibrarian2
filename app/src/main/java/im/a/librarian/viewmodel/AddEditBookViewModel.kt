@@ -39,6 +39,9 @@ data class AddEditBookUiState(
     val subgenre: String = "",
     val genreSuggestions: List<String> = emptyList(),
     val subgenreSuggestions: List<String> = emptyList(),
+    val authorSuggestions: List<String> = emptyList(),
+    val seriesSuggestions: List<String> = emptyList(),
+    val publisherSuggestions: List<String> = emptyList(),
     val dateAcquired: String = "",
     val purchasePrice: String = "",
     val sourceOfPurchase: String = "",
@@ -76,6 +79,9 @@ class AddEditBookViewModel @Inject constructor(
     val uiState: StateFlow<AddEditBookUiState> = _uiState.asStateFlow()
 
     private var allGenres: List<String> = GenreCatalog.allTerms
+    private var allAuthors: List<String> = emptyList()
+    private var allSeries: List<String> = emptyList()
+    private var allPublishers: List<String> = emptyList()
 
     init {
         viewModelScope.launch {
@@ -83,6 +89,18 @@ class AddEditBookViewModel @Inject constructor(
             allGenres = (GenreCatalog.allTerms + dbGenres).distinct().sorted()
             refreshGenreSuggestions(_uiState.value.genre)
             refreshSubgenreSuggestions(_uiState.value.subgenre)
+        }
+        viewModelScope.launch {
+            // authorNames rows are comma-separated combinations ("A, B");
+            // split them into individual author names for autocomplete
+            allAuthors = bookRepository.getAllAuthors()
+                .flatMap { it.split(",") }
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .sorted()
+            allSeries = bookRepository.getAllSeriesNames()
+            allPublishers = bookRepository.getAllPublishers()
         }
         if (bookId > 0) {
             loadBook()
@@ -182,8 +200,14 @@ class AddEditBookViewModel @Inject constructor(
     fun updateSubtitle(subtitle: String) { _uiState.value = _uiState.value.copy(subtitle = subtitle) }
     fun updateIsbn10(isbn: String) { _uiState.value = _uiState.value.copy(isbn10 = isbn) }
     fun updateIsbn13(isbn: String) { _uiState.value = _uiState.value.copy(isbn13 = isbn) }
-    fun updateAuthorNames(authors: String) { _uiState.value = _uiState.value.copy(authorNames = authors) }
-    fun updatePublisher(publisher: String) { _uiState.value = _uiState.value.copy(publisher = publisher) }
+    fun updateAuthorNames(authors: String) {
+        _uiState.value = _uiState.value.copy(authorNames = authors)
+        refreshAuthorSuggestions(authors)
+    }
+    fun updatePublisher(publisher: String) {
+        _uiState.value = _uiState.value.copy(publisher = publisher)
+        refreshPublisherSuggestions(publisher)
+    }
     fun updatePlaceOfPublication(place: String) { _uiState.value = _uiState.value.copy(placeOfPublication = place) }
     fun updatePageCount(count: String) { _uiState.value = _uiState.value.copy(pageCount = count) }
     fun updateLanguage(lang: String) { _uiState.value = _uiState.value.copy(language = lang) }
@@ -211,6 +235,58 @@ class AddEditBookViewModel @Inject constructor(
             else allGenres.filter { it.contains(query, ignoreCase = true) }
         _uiState.value = _uiState.value.copy(subgenreSuggestions = filtered)
     }
+
+    private fun refreshAuthorSuggestions(text: String) {
+        // autocomplete applies to the author currently being typed,
+        // i.e. the segment after the last comma
+        val segment = text.substringAfterLast(',').trim()
+        val filtered = if (segment.isBlank()) emptyList()
+            else allAuthors.filter {
+                it.contains(segment, ignoreCase = true) && !it.equals(segment, ignoreCase = true)
+            }
+        _uiState.value = _uiState.value.copy(authorSuggestions = filtered)
+    }
+
+    fun selectAuthorSuggestion(author: String) {
+        val current = _uiState.value.authorNames
+        val prefix = current.substringBeforeLast(',', missingDelimiterValue = "")
+            .takeIf { it.isNotBlank() }?.let { "$it, " } ?: ""
+        _uiState.value = _uiState.value.copy(
+            authorNames = prefix + author,
+            authorSuggestions = emptyList()
+        )
+    }
+
+    private fun refreshSeriesSuggestions(query: String) {
+        val filtered = if (query.isBlank()) emptyList()
+            else allSeries.filter {
+                it.contains(query, ignoreCase = true) && !it.equals(query, ignoreCase = true)
+            }
+        _uiState.value = _uiState.value.copy(seriesSuggestions = filtered)
+    }
+
+    fun selectSeriesSuggestion(series: String) {
+        _uiState.value = _uiState.value.copy(
+            seriesName = series,
+            seriesSuggestions = emptyList()
+        )
+    }
+
+    private fun refreshPublisherSuggestions(query: String) {
+        val filtered = if (query.isBlank()) emptyList()
+            else allPublishers.filter {
+                it.contains(query, ignoreCase = true) && !it.equals(query, ignoreCase = true)
+            }
+        _uiState.value = _uiState.value.copy(publisherSuggestions = filtered)
+    }
+
+    fun selectPublisherSuggestion(publisher: String) {
+        _uiState.value = _uiState.value.copy(
+            publisher = publisher,
+            publisherSuggestions = emptyList()
+        )
+    }
+
     fun updateDateAcquired(date: String) { _uiState.value = _uiState.value.copy(dateAcquired = date) }
     fun updatePurchasePrice(price: String) { _uiState.value = _uiState.value.copy(purchasePrice = price) }
     fun updateSourceOfPurchase(source: String) { _uiState.value = _uiState.value.copy(sourceOfPurchase = source) }
@@ -220,7 +296,10 @@ class AddEditBookViewModel @Inject constructor(
     fun updatePersonalNotes(notes: String) { _uiState.value = _uiState.value.copy(personalNotes = notes) }
     fun updateTranslator(t: String) { _uiState.value = _uiState.value.copy(translator = t) }
     fun updateIsFavourite(fav: Boolean) { _uiState.value = _uiState.value.copy(isFavourite = fav) }
-    fun updateSeriesName(name: String) { _uiState.value = _uiState.value.copy(seriesName = name) }
+    fun updateSeriesName(name: String) {
+        _uiState.value = _uiState.value.copy(seriesName = name)
+        refreshSeriesSuggestions(name)
+    }
     fun updateSeriesNumber(num: String) { _uiState.value = _uiState.value.copy(seriesNumber = num) }
     fun updateCoverImagePath(path: String) { _uiState.value = _uiState.value.copy(coverImagePath = path) }
     fun selectLanguageFlag(code: String) {
