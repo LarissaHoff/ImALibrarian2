@@ -41,6 +41,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
+private data class CoverEditRequest(
+    val imagePath: String,
+    val deleteSourceOnFinish: Boolean
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditBookScreen(
@@ -83,7 +88,7 @@ fun AddEditBookScreen(
 
     var photoUri by remember { mutableStateOf<Uri?>(null) }
     var photoFile by remember { mutableStateOf<File?>(null) }
-    var pendingCoverEdit by remember { mutableStateOf<File?>(null) }
+    var pendingCoverEdit by remember { mutableStateOf<CoverEditRequest?>(null) }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
@@ -91,24 +96,48 @@ fun AddEditBookScreen(
         if (success) {
             val capturedFile = photoFile
             if (capturedFile != null && capturedFile.exists()) {
-                pendingCoverEdit = capturedFile
+                pendingCoverEdit = CoverEditRequest(capturedFile.absolutePath, deleteSourceOnFinish = true)
             }
         }
+    }
+
+    val launchCamera = {
+        val coversDir = File(context.filesDir, "covers")
+        coversDir.mkdirs()
+        val file = File(coversDir, "cover_${System.currentTimeMillis()}.jpg")
+        photoFile = file
+        photoUri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
+        cameraLauncher.launch(photoUri!!)
     }
 
     if (uiState.saveComplete) {
         LaunchedEffect(Unit) { navController.popBackStack() }
     }
 
-    pendingCoverEdit?.let { file ->
+    val coversOutputDir = remember { File(context.filesDir, "covers") }
+
+    pendingCoverEdit?.let { request ->
         CoverEditDialog(
-            sourceFile = file,
+            imagePath = request.imagePath,
+            outputDir = coversOutputDir,
+            deleteSourceOnFinish = request.deleteSourceOnFinish,
+            onRetake = if (hasCamera) {
+                {
+                    pendingCoverEdit = null
+                    launchCamera()
+                }
+            } else {
+                null
+            },
             onConfirmed = { path ->
                 viewModel.updateCoverImagePath(path)
                 pendingCoverEdit = null
             },
             onDismissed = {
-                scope.launch(Dispatchers.IO) { file.delete() }
                 pendingCoverEdit = null
             }
         )
@@ -147,18 +176,15 @@ fun AddEditBookScreen(
                 coverImagePath = uiState.coverImagePath,
                 onTakePhoto = {
                     if (hasCamera) {
-                        val coversDir = File(context.filesDir, "covers")
-                        coversDir.mkdirs()
-                        val file = File(coversDir, "cover_${System.currentTimeMillis()}.jpg")
-                        photoFile = file
-                        photoUri = FileProvider.getUriForFile(
-                            context,
-                            "${context.packageName}.fileprovider",
-                            file
-                        )
-                        cameraLauncher.launch(photoUri!!)
+                        launchCamera()
                     } else {
                         imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }
+                },
+                onEditExisting = {
+                    val path = uiState.coverImagePath
+                    if (path.isNotBlank()) {
+                        pendingCoverEdit = CoverEditRequest(imagePath = path, deleteSourceOnFinish = false)
                     }
                 },
                 onPickFromGallery = {
@@ -455,6 +481,7 @@ fun AddEditBookScreen(
 private fun CoverImagePicker(
     coverImagePath: String,
     onTakePhoto: () -> Unit,
+    onEditExisting: () -> Unit,
     onPickFromGallery: () -> Unit
 ) {
     val context = LocalContext.current
@@ -478,14 +505,16 @@ private fun CoverImagePicker(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
-                Icon(
-                    Icons.Filled.Edit,
-                    contentDescription = "Change cover",
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp),
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
+                IconButton(
+                    onClick = onEditExisting,
+                    modifier = Modifier.align(Alignment.TopEnd)
+                ) {
+                    Icon(
+                        Icons.Filled.Edit,
+                        contentDescription = "Edit cover",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(

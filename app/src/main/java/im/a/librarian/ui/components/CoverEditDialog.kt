@@ -1,5 +1,6 @@
 package im.a.librarian.ui.components
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
@@ -29,12 +30,14 @@ import androidx.compose.material.icons.automirrored.filled.RotateLeft
 import androidx.compose.material.icons.automirrored.filled.RotateRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +60,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -68,6 +72,8 @@ import im.a.librarian.ui.theme.Turquoise
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.min
@@ -80,23 +86,45 @@ private const val MIN_CROP_FRACTION = 0.15f
 
 @Composable
 fun CoverEditDialog(
-    sourceFile: File,
+    imagePath: String,
+    outputDir: File,
+    deleteSourceOnFinish: Boolean,
+    onRetake: (() -> Unit)?,
     onConfirmed: (String) -> Unit,
     onDismissed: () -> Unit
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     var loadFailed by remember { mutableStateOf(false) }
     var rotation by remember { mutableStateOf(0) }
     var crop by remember { mutableStateOf(Rect(0f, 0f, 1f, 1f)) }
     var saving by remember { mutableStateOf(false) }
+    var sourceFile by remember { mutableStateOf<File?>(null) }
+    var disposableSource by remember { mutableStateOf(false) }
+    var sourceKept by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
-        onDispose { bitmap?.recycle() }
+        onDispose {
+            val file = sourceFile
+            if (disposableSource && !sourceKept && file != null) {
+                file.delete()
+            }
+            bitmap?.recycle()
+        }
     }
 
-    LaunchedEffect(sourceFile) {
-        val decoded = withContext(Dispatchers.IO) { decodeWorkingImage(sourceFile) }
+    LaunchedEffect(imagePath) {
+        val resolved = withContext(Dispatchers.IO) {
+            resolveSource(context, imagePath, deleteSourceOnFinish)
+        }
+        if (resolved == null) {
+            loadFailed = true
+            return@LaunchedEffect
+        }
+        sourceFile = resolved.file
+        disposableSource = resolved.disposable
+        val decoded = withContext(Dispatchers.IO) { decodeWorkingImage(resolved.file) }
         if (decoded != null) {
             bitmap = decoded
         } else {
@@ -114,15 +142,17 @@ fun CoverEditDialog(
     }
 
     fun confirm() {
-        val bmp = bitmap ?: return
-        if (saving) return
+        val bmp = bitmap
+        val src = sourceFile
+        if (bmp == null || src == null || saving) return
         saving = true
         scope.launch {
             val result = withContext(Dispatchers.IO) {
-                runCatching { transformAndSave(sourceFile, bmp, rotation, crop) }
+                runCatching { transformAndSave(src, bmp, rotation, crop, outputDir, disposableSource) }
             }
             result.fold(
                 onSuccess = { path ->
+                    if (path == src.absolutePath) sourceKept = true
                     saving = false
                     onConfirmed(path)
                 },
@@ -199,7 +229,7 @@ fun CoverEditDialog(
                         }
                         loadFailed -> {
                             Text(
-                                "Could not load the photo for editing.",
+                                "Could not load the image for editing.",
                                 color = Color.White
                             )
                         }
@@ -211,7 +241,8 @@ fun CoverEditDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.Center
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
                         onClick = {
@@ -222,7 +253,7 @@ fun CoverEditDialog(
                     ) {
                         Icon(Icons.AutoMirrored.Filled.RotateLeft, contentDescription = "Rotate left", tint = Color.White)
                     }
-                    Spacer(modifier = Modifier.width(32.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
                     IconButton(
                         onClick = {
                             rotation += 90
@@ -231,6 +262,22 @@ fun CoverEditDialog(
                         enabled = bitmap != null && !saving
                     ) {
                         Icon(Icons.AutoMirrored.Filled.RotateRight, contentDescription = "Rotate right", tint = Color.White)
+                    }
+                    if (onRetake != null) {
+                        Spacer(modifier = Modifier.width(16.dp))
+                        TextButton(
+                            onClick = { if (!saving) onRetake() },
+                            enabled = bitmap != null && !saving
+                        ) {
+                            Icon(
+                                Icons.Filled.PhotoCamera,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Take new picture", color = Color.White)
+                        }
                     }
                 }
             }
@@ -249,6 +296,36 @@ fun CoverEditDialog(
         }
     }
 }
+
+private data class CoverEditSource(val file: File, val disposable: Boolean)
+
+private fun resolveSource(
+    context: Context,
+    imagePath: String,
+    deleteSourceOnFinish: Boolean
+): CoverEditSource? {
+    return if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+        downloadImage(imagePath, context.cacheDir)?.let { CoverEditSource(it, disposable = true) }
+    } else {
+        val file = File(imagePath)
+        if (file.exists()) CoverEditSource(file, disposable = deleteSourceOnFinish) else null
+    }
+}
+
+private fun downloadImage(url: String, cacheDir: File): File? = runCatching {
+    val request = Request.Builder().url(url).build()
+    OkHttpClient().newCall(request).execute().use { response ->
+        if (!response.isSuccessful) return@runCatching null
+        val body = response.body ?: return@runCatching null
+        val temp = File(cacheDir, "cover_edit_${System.currentTimeMillis()}.jpg")
+        body.byteStream().use { input ->
+            temp.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+        if (temp.length() > 0) temp else null
+    }
+}.getOrNull()
 
 private enum class CropHandle { TOP_LEFT, TOP, TOP_RIGHT, LEFT, RIGHT, BOTTOM_LEFT, BOTTOM, BOTTOM_RIGHT }
 
@@ -511,16 +588,20 @@ private fun transformAndSave(
     sourceFile: File,
     bitmap: Bitmap,
     rotationDegrees: Int,
-    crop: Rect
+    crop: Rect,
+    outputDir: File,
+    deleteSource: Boolean
 ): String {
-    val coversDir = sourceFile.parentFile
-        ?: throw IllegalStateException("Cover source file has no parent directory")
-    val destFile = File(coversDir, "cover_${System.currentTimeMillis()}.jpg")
+    outputDir.mkdirs()
     val noChanges = ((rotationDegrees % 360) + 360) % 360 == 0 &&
         crop.left <= 0f && crop.top <= 0f && crop.right >= 1f && crop.bottom >= 1f
+    if (noChanges && sourceFile.parentFile == outputDir) {
+        return sourceFile.absolutePath
+    }
+    val destFile = File(outputDir, "cover_${System.currentTimeMillis()}.jpg")
     if (noChanges) {
         sourceFile.copyTo(destFile, overwrite = true)
-        sourceFile.delete()
+        if (deleteSource) sourceFile.delete()
         return destFile.absolutePath
     }
     val rotated = when (((rotationDegrees % 360) + 360) % 360) {
@@ -545,6 +626,6 @@ private fun transformAndSave(
     }
     if (cropped !== rotated) cropped.recycle()
     if (rotated !== bitmap) rotated.recycle()
-    sourceFile.delete()
+    if (deleteSource) sourceFile.delete()
     return destFile.absolutePath
 }
