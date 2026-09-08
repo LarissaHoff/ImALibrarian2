@@ -20,4 +20,6 @@ sealed class Screen(val route: String) {
     data object GlobalSearch : Screen("global_search")
     data object Statistics : Screen("statistics")
     data object ImportExport : Screen("import_export")
+    data object Welcome : Screen("welcome")
+    data object Help : Screen("help")
 }

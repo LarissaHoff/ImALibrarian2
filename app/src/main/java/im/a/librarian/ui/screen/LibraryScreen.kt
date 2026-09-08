@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -115,6 +116,14 @@ fun LibraryScreen(
                     expanded = burgerMenuExpanded,
                     onDismissRequest = { burgerMenuExpanded = false }
                 ) {
+                    DropdownMenuItem(
+                        text = { Text("Help & FAQ") },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = null) },
+                        onClick = {
+                            navController.navigate("help")
+                            burgerMenuExpanded = false
+                        }
+                    )
                     DropdownMenuItem(
                         text = { Text("Import / Export") },
                         leadingIcon = { Icon(Icons.Filled.ImportExport, contentDescription = null) },

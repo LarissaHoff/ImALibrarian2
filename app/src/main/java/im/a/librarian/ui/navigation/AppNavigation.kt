@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -15,35 +17,55 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import im.a.librarian.ui.screen.*
+import im.a.librarian.ui.screen.OnboardingPrefs
 
 @Composable
 fun AppNavigation(navController: NavHostController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    val context = LocalContext.current
+    val startDestination = remember {
+        if (OnboardingPrefs.isCompleted(context)) {
+            Screen.Library.route
+        } else {
+            Screen.Welcome.route
+        }
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars,
         bottomBar = {
-            BottomNavBar(
-                currentRoute = currentRoute,
-                onTabSelected = { route ->
-                    navController.navigate(route) {
-                        popUpTo(navController.graph.findStartDestination().id)
-                        launchSingleTop = true
-                        restoreState = true
+            if (currentRoute != Screen.Welcome.route) {
+                BottomNavBar(
+                    currentRoute = currentRoute,
+                    onTabSelected = { route ->
+                        navController.navigate(route) {
+                            popUpTo(navController.graph.findStartDestination().id)
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onScanClick = {
+                        navController.navigate(Screen.ScanBarcode.route)
                     }
-                },
-                onScanClick = {
-                    navController.navigate(Screen.ScanBarcode.route)
-                }
-            )
+                )
+            }
         }
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Library.route,
+            startDestination = startDestination,
             modifier = Modifier.padding(innerPadding)
         ) {
+            composable(Screen.Welcome.route) {
+                WelcomeScreen(navController = navController)
+            }
+
+            composable(Screen.Help.route) {
+                HelpScreen(navController = navController)
+            }
+
             composable(Screen.Home.route) {
                 HomeScreen(navController = navController)
             }
