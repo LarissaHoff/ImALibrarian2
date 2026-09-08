@@ -93,6 +93,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.coil.compose)
+    implementation(libs.androidx.exifinterface)
 
     implementation(libs.camerax.core)
     implementation(libs.camerax.camera2)

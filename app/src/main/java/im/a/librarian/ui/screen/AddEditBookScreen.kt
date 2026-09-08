@@ -30,6 +30,7 @@ import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import im.a.librarian.domain.model.ReadStatus
+import im.a.librarian.ui.components.CoverEditDialog
 import im.a.librarian.ui.components.StarburstRating
 import im.a.librarian.ui.theme.*
 import im.a.librarian.viewmodel.AddEditBookViewModel
@@ -81,36 +82,36 @@ fun AddEditBookScreen(
     }
 
     var photoUri by remember { mutableStateOf<Uri?>(null) }
+    var photoFile by remember { mutableStateOf<File?>(null) }
+    var pendingCoverEdit by remember { mutableStateOf<File?>(null) }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success: Boolean ->
         if (success) {
-            photoUri?.let { uri ->
-                scope.launch {
-                    try {
-                        val fileName = "cover_${System.currentTimeMillis()}.jpg"
-                        val coversDir = File(context.filesDir, "covers")
-                        coversDir.mkdirs()
-                        val destFile = File(coversDir, fileName)
-                        withContext(Dispatchers.IO) {
-                            context.contentResolver.openInputStream(uri)?.use { input ->
-                                destFile.outputStream().use { output ->
-                                    input.copyTo(output)
-                                }
-                            }
-                        }
-                        viewModel.updateCoverImagePath(destFile.absolutePath)
-                    } catch (e: Exception) {
-                        Log.e("AddEditBook", "Failed to copy cover from camera", e)
-                    }
-                }
+            val capturedFile = photoFile
+            if (capturedFile != null && capturedFile.exists()) {
+                pendingCoverEdit = capturedFile
             }
         }
     }
 
     if (uiState.saveComplete) {
         LaunchedEffect(Unit) { navController.popBackStack() }
+    }
+
+    pendingCoverEdit?.let { file ->
+        CoverEditDialog(
+            sourceFile = file,
+            onConfirmed = { path ->
+                viewModel.updateCoverImagePath(path)
+                pendingCoverEdit = null
+            },
+            onDismissed = {
+                scope.launch(Dispatchers.IO) { file.delete() }
+                pendingCoverEdit = null
+            }
+        )
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -148,11 +149,12 @@ fun AddEditBookScreen(
                     if (hasCamera) {
                         val coversDir = File(context.filesDir, "covers")
                         coversDir.mkdirs()
-                        val photoFile = File(coversDir, "cover_${System.currentTimeMillis()}.jpg")
+                        val file = File(coversDir, "cover_${System.currentTimeMillis()}.jpg")
+                        photoFile = file
                         photoUri = FileProvider.getUriForFile(
                             context,
                             "${context.packageName}.fileprovider",
-                            photoFile
+                            file
                         )
                         cameraLauncher.launch(photoUri!!)
                     } else {
