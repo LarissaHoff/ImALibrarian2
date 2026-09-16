@@ -3,16 +3,16 @@ package im.a.librarian.domain.usecase
 import im.a.librarian.domain.model.Book
 import im.a.librarian.domain.model.ReadStatus
 import im.a.librarian.domain.repository.BookRepository
-import kotlinx.coroutines.flow.first
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Test
-import org.mockito.kotlin.*
 
 class ExportBooksUseCaseTest {
 
-    private val bookRepository: BookRepository = mock()
+    private val bookRepository: BookRepository = mockk()
     private val useCase = ExportBooksUseCase(bookRepository)
 
     @Test
@@ -26,7 +26,7 @@ class ExportBooksUseCaseTest {
                 rating = 4
             )
         )
-        whenever(bookRepository.getAllBooks()).thenReturn(flowOf(books))
+        every { bookRepository.getAllBooks() } returns flowOf(books)
 
         val result = useCase.exportToJson()
         assertTrue(result.contains("Test Book"))
@@ -42,7 +42,7 @@ class ExportBooksUseCaseTest {
                 isbn13 = "9781234567890"
             )
         )
-        whenever(bookRepository.getAllBooks()).thenReturn(flowOf(books))
+        every { bookRepository.getAllBooks() } returns flowOf(books)
 
         val result = useCase.exportToCsv()
         assertTrue(result.startsWith("id,title"))
@@ -55,7 +55,7 @@ class ExportBooksUseCaseTest {
         val books = listOf(
             Book(id = 1, title = "Book, With, Commas")
         )
-        whenever(bookRepository.getAllBooks()).thenReturn(flowOf(books))
+        every { bookRepository.getAllBooks() } returns flowOf(books)
 
         val result = useCase.exportToCsv()
         assertTrue(result.contains("\"Book, With, Commas\""))

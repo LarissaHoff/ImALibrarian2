@@ -4,27 +4,28 @@ import im.a.librarian.domain.model.ReadStatus
 import im.a.librarian.domain.model.Statistics
 import im.a.librarian.domain.repository.BookRepository
 import im.a.librarian.domain.repository.WishlistRepository
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Test
-import org.mockito.kotlin.*
 
 class StatisticsUseCaseTest {
 
-    private val bookRepository: BookRepository = mock()
-    private val wishlistRepository: WishlistRepository = mock()
+    private val bookRepository: BookRepository = mockk()
+    private val wishlistRepository: WishlistRepository = mockk()
     private val useCase = GetStatisticsUseCase(bookRepository, wishlistRepository)
 
     @Test
     fun `getStatistics returns correct counts`() = runTest {
-        whenever(bookRepository.getBookCount()).thenReturn(10)
-        whenever(bookRepository.getBookCountByStatus(ReadStatus.FINISHED)).thenReturn(5)
-        whenever(bookRepository.getBookCountByStatus(ReadStatus.UNREAD)).thenReturn(3)
-        whenever(bookRepository.getBookCountByStatus(ReadStatus.CURRENTLY_READING)).thenReturn(1)
-        whenever(bookRepository.getBookCountByStatus(ReadStatus.DID_NOT_FINISH)).thenReturn(1)
-        whenever(bookRepository.getBookCountByGenre()).thenReturn(mapOf("Fiction" to 7, "Non-Fiction" to 3))
-        whenever(bookRepository.getAllAuthors()).thenReturn(listOf("Author One", "Author Two", "Author One"))
-        whenever(wishlistRepository.getWishlistCount()).thenReturn(4)
+        coEvery { bookRepository.getBookCount() } returns 10
+        coEvery { bookRepository.getBookCountByStatus(ReadStatus.FINISHED) } returns 5
+        coEvery { bookRepository.getBookCountByStatus(ReadStatus.UNREAD) } returns 3
+        coEvery { bookRepository.getBookCountByStatus(ReadStatus.CURRENTLY_READING) } returns 1
+        coEvery { bookRepository.getBookCountByStatus(ReadStatus.DID_NOT_FINISH) } returns 1
+        coEvery { bookRepository.getBookCountByGenre() } returns mapOf("Fiction" to 7, "Non-Fiction" to 3)
+        coEvery { bookRepository.getAllAuthors() } returns listOf("Author One", "Author Two", "Author One")
+        coEvery { wishlistRepository.getWishlistCount() } returns 4
 
         val stats = useCase.getStatistics()
 
@@ -38,14 +39,14 @@ class StatisticsUseCaseTest {
 
     @Test
     fun `getStatistics calculates reading progress`() = runTest {
-        whenever(bookRepository.getBookCount()).thenReturn(10)
-        whenever(bookRepository.getBookCountByStatus(ReadStatus.FINISHED)).thenReturn(5)
-        whenever(bookRepository.getBookCountByStatus(ReadStatus.UNREAD)).thenReturn(3)
-        whenever(bookRepository.getBookCountByStatus(ReadStatus.CURRENTLY_READING)).thenReturn(1)
-        whenever(bookRepository.getBookCountByStatus(ReadStatus.DID_NOT_FINISH)).thenReturn(1)
-        whenever(bookRepository.getBookCountByGenre()).thenReturn(emptyMap())
-        whenever(bookRepository.getAllAuthors()).thenReturn(emptyList())
-        whenever(wishlistRepository.getWishlistCount()).thenReturn(0)
+        coEvery { bookRepository.getBookCount() } returns 10
+        coEvery { bookRepository.getBookCountByStatus(ReadStatus.FINISHED) } returns 5
+        coEvery { bookRepository.getBookCountByStatus(ReadStatus.UNREAD) } returns 3
+        coEvery { bookRepository.getBookCountByStatus(ReadStatus.CURRENTLY_READING) } returns 1
+        coEvery { bookRepository.getBookCountByStatus(ReadStatus.DID_NOT_FINISH) } returns 1
+        coEvery { bookRepository.getBookCountByGenre() } returns emptyMap()
+        coEvery { bookRepository.getAllAuthors() } returns emptyList()
+        coEvery { wishlistRepository.getWishlistCount() } returns 0
 
         val stats = useCase.getStatistics()
 

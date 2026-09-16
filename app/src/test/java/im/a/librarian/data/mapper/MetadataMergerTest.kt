@@ -70,14 +70,12 @@ class MetadataMergerTest {
             )
         )
 
-        val olResponse = OpenLibraryBookResponse(
-            map = mapOf(
-                "ISBN:9781234567890" to OpenLibraryBookData(
-                    title = "Test Book",
-                    publishers = listOf(OpenLibraryPublisher(name = "OL Publisher")),
-                    number_of_pages = 350,
-                    isbn_13 = listOf("9781234567890")
-                )
+        val olResponse = mapOf(
+            "ISBN:9781234567890" to OpenLibraryBookData(
+                title = "Test Book",
+                publishers = listOf(OpenLibraryPublisher(name = "OL Publisher")),
+                number_of_pages = 350,
+                isbn_13 = listOf("9781234567890")
             )
         )
 
