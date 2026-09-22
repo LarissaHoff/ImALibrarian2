@@ -1,17 +1,15 @@
 package im.a.librarian.data.remote.api
 
-import im.a.librarian.data.remote.model.OpenLibraryBookData
 import im.a.librarian.data.remote.model.OpenLibrarySearchResponse
 import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface OpenLibraryApi {
-    @GET("/api/books")
+    @GET("/search.json")
     suspend fun getBookByIsbn(
-        @Query("bibkeys") bibkeys: String,
-        @Query("format") format: String = "json",
-        @Query("jscmd") jscmd: String = "data"
-    ): Map<String, OpenLibraryBookData>
+        @Query("q") query: String,
+        @Query("limit") limit: Int = 1
+    ): OpenLibrarySearchResponse
 
     @GET("/search.json")
     suspend fun searchByTitle(

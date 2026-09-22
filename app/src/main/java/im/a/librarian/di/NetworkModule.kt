@@ -1,5 +1,6 @@
 package im.a.librarian.di
 
+import im.a.librarian.BuildConfig
 import im.a.librarian.data.remote.api.GoogleBooksApi
 import im.a.librarian.data.remote.api.OpenLibraryApi
 import dagger.Module
@@ -38,6 +39,11 @@ object NetworkModule {
             .callTimeout(10, TimeUnit.SECONDS)
             .build()
     }
+
+    @Provides
+    @Singleton
+    @GoogleBooksApiKey
+    fun provideGoogleBooksApiKey(): String = BuildConfig.GOOGLE_BOOKS_API_KEY
 
     @Provides
     @Singleton
@@ -81,3 +87,7 @@ annotation class GoogleBooksRetrofit
 @javax.inject.Qualifier
 @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY)
 annotation class OpenLibraryRetrofit
+
+@javax.inject.Qualifier
+@kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY)
+annotation class GoogleBooksApiKey

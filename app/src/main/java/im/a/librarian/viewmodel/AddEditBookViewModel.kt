@@ -60,6 +60,7 @@ data class AddEditBookUiState(
     val isSaving: Boolean = false,
     val isLookingUp: Boolean = false,
     val lookupFailed: Boolean = false,
+    val lookupError: String? = null,
     val isDuplicate: Boolean = false,
     val scanResult: ScanResult.Found? = null,
     val saveComplete: Boolean = false
@@ -157,7 +158,12 @@ class AddEditBookViewModel @Inject constructor(
     private fun lookupScannedIsbn(isbn: String) {
         viewModelScope.launch {
             Log.d("BookLookup", "Looking up ISBN: $isbn")
-            _uiState.value = _uiState.value.copy(isbn = isbn, isLookingUp = true, lookupFailed = false)
+            _uiState.value = _uiState.value.copy(
+                isbn = isbn,
+                isLookingUp = true,
+                lookupFailed = false,
+                lookupError = null
+            )
             checkDuplicate()
             val result = scanBarcodeUseCase.lookupBarcode(isbn)
             when (result) {
@@ -167,11 +173,19 @@ class AddEditBookViewModel @Inject constructor(
                 }
                 is ScanResult.NotFound -> {
                     Log.d("BookLookup", "No results found for ISBN: $isbn")
-                    _uiState.value = _uiState.value.copy(isLookingUp = false, lookupFailed = true)
+                    _uiState.value = _uiState.value.copy(
+                        isLookingUp = false,
+                        lookupFailed = true,
+                        lookupError = null
+                    )
                 }
                 is ScanResult.Error -> {
                     Log.e("BookLookup", "Lookup error: ${result.message}")
-                    _uiState.value = _uiState.value.copy(isLookingUp = false, lookupFailed = true)
+                    _uiState.value = _uiState.value.copy(
+                        isLookingUp = false,
+                        lookupFailed = true,
+                        lookupError = result.message
+                    )
                 }
             }
         }

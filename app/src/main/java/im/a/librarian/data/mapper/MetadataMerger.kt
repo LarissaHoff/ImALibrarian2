@@ -8,12 +8,12 @@ object MetadataMerger {
 
     fun mergeResults(
         googleResult: GoogleBooksResponse?,
-        openLibraryResult: Map<String, OpenLibraryBookData>?,
+        openLibraryResult: OpenLibrarySearchResponse?,
         isbn10: String = "",
         isbn13: String = ""
     ): ScanResult {
         val googleBook = googleResult?.items?.firstOrNull()?.volumeInfo
-        val olBook = openLibraryResult?.entries?.firstOrNull()?.value
+        val olBook = openLibraryResult?.docs?.firstOrNull()
 
         if (googleBook == null && olBook == null) {
             return ScanResult.NotFound
@@ -28,42 +28,41 @@ object MetadataMerger {
             ?: ""
 
         val authors = googleBook?.authors?.takeIf { it.isNotEmpty() }
-            ?: olBook?.authors?.map { it.name }?.takeIf { it.isNotEmpty() }
+            ?: olBook?.author_name?.takeIf { it.isNotEmpty() }
             ?: emptyList()
 
         val publisher = googleBook?.publisher?.takeIf { it.isNotBlank() }
-            ?: olBook?.publishers?.firstOrNull()?.name?.takeIf { it.isNotBlank() }
+            ?: olBook?.publisher?.firstOrNull()?.takeIf { it.isNotBlank() }
             ?: ""
 
         val pageCount = googleBook?.pageCount?.takeIf { it > 0 }
-            ?: olBook?.number_of_pages?.takeIf { it > 0 }
+            ?: olBook?.number_of_pages_median?.takeIf { it > 0 }
             ?: 0
 
         val language = googleBook?.language?.takeIf { it.isNotBlank() }
             ?: "en"
 
         val genre = googleBook?.categories?.firstOrNull()?.takeIf { it.isNotBlank() }
-            ?: olBook?.subjects?.firstOrNull()?.name?.takeIf { it.isNotBlank() }
+            ?: olBook?.subject?.firstOrNull()?.takeIf { it.isNotBlank() }
             ?: ""
 
-        val publishedDate = googleBook?.publishedDate ?: olBook?.publish_date ?: ""
+        val publishedDate = googleBook?.publishedDate ?: olBook?.first_publish_year?.toString() ?: ""
         val publicationYear = parseYear(publishedDate)
 
         val identifiedIsbn10 = isbn10.takeIf { it.isNotBlank() }
             ?: googleBook?.industryIdentifiers?.find { it.type == "ISBN_10" }?.identifier
-            ?: olBook?.isbn_10?.firstOrNull()
+            ?: olBook?.isbn?.firstOrNull { it.length == 10 }
             ?: ""
 
         val identifiedIsbn13 = isbn13.takeIf { it.isNotBlank() }
             ?: googleBook?.industryIdentifiers?.find { it.type == "ISBN_13" }?.identifier
-            ?: olBook?.isbn_13?.firstOrNull()
+            ?: olBook?.isbn?.firstOrNull { it.length == 13 }
             ?: ""
 
         val coverUrl = googleBook?.imageLinks?.large?.takeIf { it.isNotBlank() }
             ?: googleBook?.imageLinks?.medium?.takeIf { it.isNotBlank() }
             ?: googleBook?.imageLinks?.thumbnail?.takeIf { it.isNotBlank() }
-            ?: olBook?.cover?.large?.takeIf { it.isNotBlank() }
-            ?: olBook?.cover?.medium?.takeIf { it.isNotBlank() }
+            ?: olBook?.cover_i?.let { "https://covers.openlibrary.org/b/id/$it-M.jpg" }
             ?: ""
 
         val hasGoogleData = googleBook != null

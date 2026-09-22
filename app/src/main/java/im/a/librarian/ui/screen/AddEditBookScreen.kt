@@ -205,13 +205,16 @@ fun AddEditBookScreen(
             }
 
             if (uiState.lookupFailed) {
+                val lookupError = uiState.lookupError
+                val accent = if (lookupError != null) DnfOrange else MustardYellow
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = MustardYellow.copy(alpha = 0.15f))
+                    colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.15f))
                 ) {
                     Text(
-                        "No data found for this ISBN online. Fill in the details manually.",
+                        lookupError
+                            ?: "No data found for this ISBN online. Fill in the details manually.",
                         modifier = Modifier.padding(12.dp),
-                        color = MustardYellow
+                        color = accent
                     )
                 }
             }
