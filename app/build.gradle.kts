@@ -30,8 +30,8 @@ android {
         applicationId = "im.a.librarian"
         minSdk = 29
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.3.1"
+        versionCode = 8
+        versionName = "1.3.2"
 
         buildConfigField("String", "GOOGLE_BOOKS_API_KEY", "\"$googleBooksApiKey\"")
 
@@ -57,6 +57,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
         }
     }
     compileOptions {
